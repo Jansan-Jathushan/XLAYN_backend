@@ -1,0 +1,16 @@
+{
+  "name": "authorize",
+  "version": "0.0.1",
+  "description": "国内各大微博的authorize链接生成方法集合。原理基本一样，稍有差别",
+  "main": "lib/index.js",
+  "keywords":[
+      "sdk", "douban","renren","qq","taobao","authorize"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xinyu198736/authorize"
+  },
+  "author": "yutou",
+  "license": "MIT",
+  "dependencies":{"underscore":"1.4.2"}
+}
