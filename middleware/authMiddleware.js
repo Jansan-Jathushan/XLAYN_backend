@@ -1,6 +1,8 @@
 
 import jwt from "jsonwebtoken";
 import User from "../Models/userModels.js";
+import Supplier from "../Models/supplierModel.js";
+import Wholesaler from "../Models/wholesalerModel.js";
 
 
 
@@ -15,7 +17,8 @@ const protect =async(req,res,next)=>{
             //console.log(decoded);
 
             req.user=await User.findById(decoded.userId).select("-password");
-            
+            req.user=await Supplier.findById(decoded.userId).select("-password");
+            req.user=await Wholesaler.findById(decoded.userId).select("-password");
            if(req.user){
             // console.log(req.user);
           next();

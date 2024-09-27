@@ -45,7 +45,9 @@ import connectDB from './config/db.js';
 import cookieParser from 'cookie-parser';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import userRoutes from './routes/ userRoutes.js';
-import productRoutes from './routes/productRoutes.js'
+import productRoutes from './routes/productRoutes.js';
+import registerRequestRoutes from './routes/registerRequestRoutes.js'
+import adminRoutes from './routes/adminRoutes.js';
 
 dotenv.config();
 
@@ -75,6 +77,8 @@ connectToDB();
 
 app.use('/api/users', userRoutes);
 app. use ('/api/products',productRoutes);
+app. use ('/api/register-request', registerRequestRoutes);
+app. use ('/api/admin',adminRoutes);
 
 // Define error handlers before application routes
 app.use(notFound);
