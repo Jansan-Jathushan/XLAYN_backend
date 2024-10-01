@@ -76,7 +76,7 @@ async function connectToDB() {
 connectToDB();
 
 app.use('/api/users', userRoutes);
-app. use ('/api/products',productRoutes);
+app. use ('/api/product',productRoutes);
 app. use ('/api/register-request', registerRequestRoutes);
 app. use ('/api/admin',adminRoutes);
 

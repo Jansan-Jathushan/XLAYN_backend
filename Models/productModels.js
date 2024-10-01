@@ -12,9 +12,10 @@
 // export default model('itemModels', itemSchema);
 
 
-import { Schema, model } from 'mongoose';
+// import { Schema, model } from 'mongoose';
+import mongoose from 'mongoose'
 
-const itemSchema = new Schema({
+const ProductSchema = new mongoose.Schema({
   name: { 
     type: String, 
     required: true // Product Name
@@ -44,14 +45,31 @@ const itemSchema = new Schema({
     required: true // Product Image
   }],
   supplier: { 
-    type: Schema.Types.ObjectId, 
+    type: mongoose.Schema.Types.ObjectId, 
     ref: 'Supplier', 
     required: true // Supplier Information
+  },
+  status: {
+    type: String,
+    enum: ['pending', 'approved', 'rejected'],
+    default: 'pending',
   },
   date: { 
     type: Date, 
     default: Date.now // Date of entry
   },
+
+}, { timestamps: true });
+
+
+// Pre-save middleware to automatically set the supplier field
+ProductSchema.pre('save', function (next) {
+  if (!this.supplier) {
+    // Assuming `this.SupplierId` contains the current supplier's ID
+    this.supplier = this.SupplierId; 
+  }
+  next();
 });
 
-export default model('itemModels', itemSchema);
+const Product = mongoose.model('Products', ProductSchema)
+export default Product;

@@ -2,7 +2,9 @@ import express from 'express';
 const router = express.Router();
 import {
   registerSupplier,
+  supplierLogin,
   registerWholesaler,
+  wholesalerLogin,
   getPendingSupplierRequests,
   getPendingWholesalerRequests,
   approveSupplier,
@@ -16,6 +18,8 @@ import {
 } from '../controllers/registerRequestController.js';
 import { upload } from '../middleware/multer.js';
 
+
+
 // Registration routes
 router.post('/register-supplier', upload.fields([
   { name: 'businessProof', maxCount: 1 },
@@ -25,6 +29,10 @@ router.post('/register-wholesaler', upload.fields([
   { name: 'businessProof', maxCount: 1 },
   { name: 'storeImage', maxCount: 1 }
 ]), registerWholesaler);
+
+// Login routes
+router.post('/supplier-login', supplierLogin);
+router.post('/wholesaler-login', wholesalerLogin);
 
 
 // Get pending requests
@@ -46,5 +54,7 @@ router.get('/rejected-suppliers', getRejectedSuppliers);
 // Define routes for wholesalers
 router.get('/approved-wholesalers', getApprovedWholesalers);
 router.get('/rejected-wholesalers', getRejectedWholesalers);
+
+
 
 export default router;

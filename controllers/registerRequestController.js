@@ -1,5 +1,7 @@
 import Supplier from '../Models/supplierModel.js';
 import Wholesaler from '../Models/wholesalerModel.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import asyncHandler from 'express-async-handler';
 
 // Register Supplier
@@ -23,6 +25,10 @@ const registerSupplier = asyncHandler(async (req, res) => {
     return;
   }
 
+  // Hash the password before saving
+  const salt = await bcrypt.genSalt(10); // Generate a salt
+  const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
+
   // Create a new supplier
   const supplier = await Supplier.create({
     username,
@@ -30,7 +36,7 @@ const registerSupplier = asyncHandler(async (req, res) => {
     businessProof,
     storeImage,
     email,
-    password,
+    password: hashedPassword,
     address,
     bankAccountInfo
   });
@@ -45,6 +51,44 @@ const registerSupplier = asyncHandler(async (req, res) => {
   }
 });
 
+
+// Supplier login
+const supplierLogin = asyncHandler(async (req, res) => {
+
+  const { email, password } = req.body;
+
+
+  // Check if email and password are provided
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
+
+
+  try {
+    const supplier = await Supplier.findOne({ email });
+
+    if (!supplier) {
+      return res.status(404).json({ message: 'Supplier not found' });
+    }
+
+    if (supplier.status !== 'approved') {
+      return res.status(403).json({ message: 'Supplier not approved' });
+    }
+
+    const isMatch = await bcrypt.compare(password, supplier.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    res.status(200).json({
+      message: 'Login successful',
+      supplierId: supplier._id,
+      username: supplier.username,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
 
 // Register Wholesaler
@@ -62,6 +106,12 @@ const registerWholesaler = async (req, res) => {
       return res.status(400).json({ message: 'All fields are required, including businessProof and storeImage.' });
     }
 
+// Hash the password before saving
+const salt = await bcrypt.genSalt(10); // Generate a salt
+const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
+
+
+
     // Create new wholesaler object
     const newWholesaler = new Wholesaler({
       username,
@@ -71,7 +121,7 @@ const registerWholesaler = async (req, res) => {
       storeImage,
       bankAccountInfo,
       email,
-      password
+      password:hashedPassword
     });
 
     // Save wholesaler to the database
@@ -84,6 +134,55 @@ const registerWholesaler = async (req, res) => {
     res.status(400).json({ error: 'Error registering wholesaler.' });
   }
 };
+
+// Wholesaler login
+const wholesalerLogin = asyncHandler(async (req, res) => {
+
+  const { email, password } = req.body;
+
+  console.log("Password:", password); // Log the password extracted
+
+  // Check if email and password are provided
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
+
+
+  try {
+    const wholesaler = await Wholesaler.findOne({ email });
+
+    if (!wholesaler) {
+      return res.status(404).json({ message: 'Wholesaler not found' });
+    }
+
+    // Check if wholesaler is approved
+    if (wholesaler.status !== 'approved') {
+      return res.status(403).json({ message: 'Your account is not approved yet' });
+    }
+
+    // Check password
+    const isMatch = await bcrypt.compare(password, wholesaler.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign({ id: wholesaler._id, role: 'wholesaler' }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+    res.status(200).json({
+      message: 'Wholesaler login successful',
+      token,
+      wholesaler: {
+        id: wholesaler._id,
+        email: wholesaler.email,
+        role: wholesaler.role,
+        status: wholesaler.status,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error logging in wholesaler', error });
+  }
+});
 
 // Get Pending Supplier Requests
 const getPendingSupplierRequests = async (req, res) => {
@@ -200,7 +299,9 @@ const getApprovedSuppliers = async (req, res) => {
 
 export {
   registerSupplier,
+  supplierLogin,
   registerWholesaler,
+  wholesalerLogin,
   getPendingSupplierRequests,
   getPendingWholesalerRequests,
   approveSupplier,

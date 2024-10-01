@@ -118,21 +118,25 @@
 
 import productModels from "../Models/productModels.js";
 import cloudinary from "../utils/cloudinary.js";
+import asyncHandler from 'express-async-handler';
 import nodemailer from "nodemailer";
 
-// Setup Nodemailer
+// Setup Nodemailers
+// const nodemailer = require('nodemailer');
+
 const transporter = nodemailer.createTransport({
-  service: 'gmail', // or your preferred email service
+  service: 'gmail',
   auth: {
-    user: 'your_email@example.com', // your email
-    pass: 'your_email_password', // your email password
+    user: process.env.GMAIL_USER, // Using environment variable
+    pass: process.env.GMAIL_PASS, // Using environment variable
   },
 });
+
 
 // Function to notify supplier
 const notifySupplier = async (supplierEmail, productName, status) => {
   const mailOptions = {
-    from: 'your_email@example.com',
+    from: process.env.GMAIL_USER,
     to: supplierEmail,
     subject: `Your product "${productName}" has been ${status}`,
     text: `Your product "${productName}" has been ${status} by the admin.`,
@@ -143,12 +147,20 @@ const notifySupplier = async (supplierEmail, productName, status) => {
 
 // Supplier: Add Product
 export const createProduct = async (req, res) => {
-  const { name, type, weight, price, stock, description, supplier } = req.body;
-  const files = req.files;
+  const { name, type, weight, price, stock, description } = req.body;
+  const SupplierId = req.user.id;  // Assuming req.user contains the logged-in supplier's data
 
-  try {
-    const urls = await Promise.all(files.map(file => cloudinary.uploader.upload(file.path).then(res => res.secure_url)));
+// console.log(req.body);
+  const imageUrls = req.files['imageUrls'] && req.files['imageUrls'].length > 0 ? req.files['imageUrls'][0].path : null;
 
+try {
+  // Check if file is uploaded
+  if (!imageUrls) {
+    return res.status(400).json({ msg: 'No file uploaded' });
+  }
+  console.log(req.files);
+
+    // Create a new product
     const item = new productModels({
       name,
       type,
@@ -156,12 +168,14 @@ export const createProduct = async (req, res) => {
       price,
       stock,
       description,
-      imageUrls: urls,
-      supplier,
+      imageUrls, // Store the image path
+      supplier: SupplierId,
       status: 'pending', // Set initial status to pending
     });
 
+    // Save the product in the database
     await item.save();
+
     res.status(200).json(item);
   } catch (err) {
     console.error(err.message);
@@ -180,13 +194,13 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ msg: 'Product not found' });
     }
 
-    // Update the product details
-    item.name = name;
-    item.type = type;
-    item.weight = weight;
-    item.price = price;
-    item.stock = stock;
-    item.description = description;
+    // Update the product details only if they are provided
+    if (name) item.name = name;
+    if (type) item.type = type;
+    if (weight) item.weight = weight;
+    if (price) item.price = price;
+    if (stock) item.stock = stock;
+    if (description) item.description = description;
 
     await item.save();
     res.status(200).json(item);
@@ -195,6 +209,7 @@ export const updateProduct = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
 
 // Supplier: Delete Product
 export const deleteProduct = async (req, res) => {
@@ -240,7 +255,8 @@ export const getRejectedProducts = async (req, res) => {
 
 // Supplier: Get Pending Products
 export const getPendingProducts = async (req, res) => {
-  const supplierId = req.user.id;
+  console.log(req.user.id);
+  const supplierId = req.user;
   try {
     const items = await productModels.find({ supplier: supplierId, status: 'pending' });
     res.status(200).json(items);
@@ -325,12 +341,20 @@ export const getAdminRejectedProducts = async (req, res) => {
 
 // Admin: Add Product
 export const adminCreateProduct = async (req, res) => {
-  const { name, type, weight, price, stock, description } = req.body;
-  const files = req.files;
+  const { name, type, weight, price, stock, description, supplier } = req.body;
+
+  // Handle multiple image uploads, similar to supplier logic
+  const imageUrls = req.files['imageUrls'] && req.files['imageUrls'].length > 0 ? req.files['imageUrls'][0].path : null;
 
   try {
-    const urls = await Promise.all(files.map(file => cloudinary.uploader.upload(file.path).then(res => res.secure_url)));
+    // Check if the file is uploaded
+    if (!imageUrls) {
+      return res.status(400).json({ msg: 'No file uploaded' });
+    }
 
+    console.log(req.files); // Debugging to see uploaded files
+
+    // Create a new product
     const item = new productModels({
       name,
       type,
@@ -338,18 +362,20 @@ export const adminCreateProduct = async (req, res) => {
       price,
       stock,
       description,
-      imageUrls: urls,
-      status: 'approved', // Directly approved
+      imageUrls, // Store the image path
+      supplier,
+      status: 'approved', // Directly approved by admin
     });
 
+    // Save the product in the database
     await item.save();
+
     res.status(200).json(item);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 };
-
 // Admin: Update Product
 export const adminUpdateProduct = async (req, res) => {
   const { id } = req.params;

@@ -33,11 +33,18 @@ import {
   adminUpdateProduct,
   adminDeleteProduct,
 } from '../controllers/productControllers.js';
+import { upload } from '../middleware/multer.js';
+import { authenticateUser } from '../middleware/authMiddleware.js';
+
+
 
 const router = express.Router();
 
 // Supplier routes
-router.post('/supplier/products', createProduct); // Add Product
+
+router.post('/supplier/products', upload.fields([
+  { name: 'imageUrls', maxCount: 1 },
+]),authenticateUser, createProduct); // Add Product
 router.put('/supplier/products/:id', updateProduct); // Update Product
 router.delete('/supplier/products/:id', deleteProduct); // Delete Product
 router.get('/supplier/products/approved', getApprovedProducts); // Get Approved Products
@@ -50,7 +57,9 @@ router.post('/admin/products/:id/approve', approveProduct); // Approve Product
 router.post('/admin/products/:id/reject', rejectProduct); // Reject Product
 router.get('/admin/products/approved', getAdminApprovedProducts); // Get Approved Products
 router.get('/admin/products/rejected', getAdminRejectedProducts); // Get Rejected Products
-router.post('/admin/products', adminCreateProduct); // Add Product
+router.post('/admin/products', upload.fields([
+  { name: 'imageUrls', maxCount: 1 },
+]), adminCreateProduct); // Add Product
 router.put('/admin/products/:id', adminUpdateProduct); // Update Product
 router.delete('/admin/products/:id', adminDeleteProduct); // Delete Product
 
