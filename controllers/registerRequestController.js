@@ -54,15 +54,12 @@ const registerSupplier = asyncHandler(async (req, res) => {
 
 // Supplier login
 const supplierLogin = asyncHandler(async (req, res) => {
-
   const { email, password } = req.body;
 
-
-  // Check if email and password are provided
+  // Validate email and password presence
   if (!email || !password) {
     return res.status(400).json({ message: 'Email and password are required' });
   }
-
 
   try {
     const supplier = await Supplier.findOne({ email });
@@ -80,12 +77,26 @@ const supplierLogin = asyncHandler(async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
+    // Generate JWT token with the supplier role
+    const token = jwt.sign(
+      { id: supplier._id, role: 'supplier' }, 
+      process.env.JWT_SECRET, 
+      { expiresIn: '1h' }
+    );
+
     res.status(200).json({
       message: 'Login successful',
-      supplierId: supplier._id,
-      username: supplier.username,
+      token,
+      supplier: {
+        id: supplier._id,
+        username: supplier.username,
+        email: supplier.email,
+        role: supplier.role,
+        status: supplier.status,
+      },
     });
   } catch (error) {
+    console.error("Error during supplier login:", error);
     res.status(500).json({ message: 'Server error' });
   }
 });

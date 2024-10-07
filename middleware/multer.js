@@ -29,20 +29,22 @@
 // export { upload };
 
 
-
+import express from 'express';
 import multer from'multer';
 import path from 'path';
+
+const app = express();
+
 // Configure storage for file uploads
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Save files to the 'uploads/' folder
+    cb(null, 'uploads/'); // Ensure this directory exists
   },
   filename: function (req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)); // Unique filenames with timestamp and file extension
+    cb(null, Date.now() + path.extname(file.originalname)); // Unique filenames
   }
 });
 
-// File filter to only accept images and PDF
 const upload = multer({
   storage: storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // Max file size: 5MB
@@ -58,5 +60,14 @@ const upload = multer({
     }
   }
 });
+
+app.post('/admin/add-products', upload.array('imageUrls', 5), (req, res) => {
+  console.log('Files:', req.files); // Log files for debugging
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ msg: 'No files were uploaded.' });
+  }
+  res.status(200).json({ msg: 'Files uploaded successfully!', files: req.files });
+});
+
 
 export {upload};

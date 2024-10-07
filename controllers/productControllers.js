@@ -120,6 +120,8 @@ import productModels from "../Models/productModels.js";
 import cloudinary from "../utils/cloudinary.js";
 import asyncHandler from 'express-async-handler';
 import nodemailer from "nodemailer";
+// import { authenticateUser } from '../middleware/authMiddleware.js';
+
 
 // Setup Nodemailers
 // const nodemailer = require('nodemailer');
@@ -148,17 +150,19 @@ const notifySupplier = async (supplierEmail, productName, status) => {
 // Supplier: Add Product
 export const createProduct = async (req, res) => {
   const { name, type, weight, price, stock, description } = req.body;
-  const SupplierId = req.user.id;  // Assuming req.user contains the logged-in supplier's data
+  const imageUrls = req.files['imageUrls'] && req.files['imageUrls'].length > 0 
+    ? req.files['imageUrls'][0].path 
+    : null;
 
-// console.log(req.body);
-  const imageUrls = req.files['imageUrls'] && req.files['imageUrls'].length > 0 ? req.files['imageUrls'][0].path : null;
+  try {
+    // Check if file is uploaded
+    if (!imageUrls) {
+      return res.status(400).json({ msg: 'No file uploaded' });
+    }
 
-try {
-  // Check if file is uploaded
-  if (!imageUrls) {
-    return res.status(400).json({ msg: 'No file uploaded' });
-  }
-  console.log(req.files);
+    // Use the authenticated supplier data from req.user
+    const supplierId = req.user._id; 
+    const businessName = req.user.businessName; 
 
     // Create a new product
     const item = new productModels({
@@ -169,7 +173,8 @@ try {
       stock,
       description,
       imageUrls, // Store the image path
-      supplier: SupplierId,
+      supplier: supplierId, // Automatically assign the supplier ID
+      businessName, // Automatically assign the supplier's business name
       status: 'pending', // Set initial status to pending
     });
 
@@ -183,15 +188,23 @@ try {
   }
 };
 
+
 // Supplier: Update Product
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
   const { name, type, weight, price, stock, description } = req.body;
 
   try {
+    // Find the product by ID
     const item = await productModels.findById(id);
     if (!item) {
       return res.status(404).json({ msg: 'Product not found' });
+    }
+
+    // Validate if the logged-in supplier is the owner of the product
+    const supplierId = req.user._id; // Assuming you have the supplier ID in req.user
+    if (item.supplier.toString() !== supplierId.toString()) {
+      return res.status(403).json({ msg: 'Not authorized to update this product' });
     }
 
     // Update the product details only if they are provided
@@ -202,13 +215,21 @@ export const updateProduct = async (req, res) => {
     if (stock) item.stock = stock;
     if (description) item.description = description;
 
+    // Handle image upload
+    if (req.files['imageUrls'] && req.files['imageUrls'].length > 0) {
+      item.imageUrls = req.files['imageUrls'][0].path; // Update the image path
+    }
+
+    // Save the updated product in the database
     await item.save();
+
     res.status(200).json(item);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server error');
   }
 };
+
 
 
 // Supplier: Delete Product
@@ -221,6 +242,11 @@ export const deleteProduct = async (req, res) => {
       return res.status(404).json({ msg: 'Product not found' });
     }
 
+    // Check if the logged-in supplier is the owner of the product
+    if (item.supplier.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ msg: 'Not authorized to delete this product' });
+    }
+
     await productModels.findByIdAndDelete(id);
     res.status(200).json({ msg: 'Product deleted successfully' });
   } catch (err) {
@@ -231,7 +257,7 @@ export const deleteProduct = async (req, res) => {
 
 // Supplier: Get Approved Products
 export const getApprovedProducts = async (req, res) => {
-  const supplierId = req.user.id; // Assuming you have user information in req.user
+  const supplierId = req.user._id; // Using the logged-in supplier's ID
   try {
     const items = await productModels.find({ supplier: supplierId, status: 'approved' });
     res.status(200).json(items);
@@ -243,7 +269,7 @@ export const getApprovedProducts = async (req, res) => {
 
 // Supplier: Get Rejected Products
 export const getRejectedProducts = async (req, res) => {
-  const supplierId = req.user.id;
+  const supplierId = req.user._id; // Using the logged-in supplier's ID
   try {
     const items = await productModels.find({ supplier: supplierId, status: 'rejected' });
     res.status(200).json(items);
@@ -255,8 +281,7 @@ export const getRejectedProducts = async (req, res) => {
 
 // Supplier: Get Pending Products
 export const getPendingProducts = async (req, res) => {
-  console.log(req.user.id);
-  const supplierId = req.user;
+  const supplierId = req.user._id; // Using the logged-in supplier's ID
   try {
     const items = await productModels.find({ supplier: supplierId, status: 'pending' });
     res.status(200).json(items);
@@ -265,6 +290,9 @@ export const getPendingProducts = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+
+
 
 // Admin: Get Pending Products
 export const getAdminPendingProducts = async (req, res) => {
@@ -334,27 +362,39 @@ export const getAdminRejectedProducts = async (req, res) => {
     const items = await productModels.find({ status: 'rejected' });
     res.status(200).json(items);
   } catch (err) {
-    console.error(err.message);
+    console.error(err.message);const imageUrls = req.files['imageUrls'] && req.files['imageUrls'].length > 0 
+    ? req.files['imageUrls'][0].path 
+    : null;
+  
     res.status(500).send('Server error');
   }
 };
 
 // Admin: Add Product
+// Admin: Add Product
 export const adminCreateProduct = async (req, res) => {
-  const { name, type, weight, price, stock, description, supplier } = req.body;
+  console.log('Request Body:', req.body);
+  console.log('Uploaded Files:', req.files); // Log uploaded files
 
-  // Handle multiple image uploads, similar to supplier logic
-  const imageUrls = req.files['imageUrls'] && req.files['imageUrls'].length > 0 ? req.files['imageUrls'][0].path : null;
+  const { name, type, weight, price, stock, description } = req.body;
+
+  const imageUrls = req.files && req.files.length > 0 
+    ? req.files.map(file => file.path)
+    : [];
 
   try {
-    // Check if the file is uploaded
-    if (!imageUrls) {
-      return res.status(400).json({ msg: 'No file uploaded' });
+    if (imageUrls.length === 0) {
+      console.error('No image files uploaded');
+      return res.status(400).json({ msg: 'No image files uploaded' });
     }
 
-    console.log(req.files); // Debugging to see uploaded files
+    // Ensure req.admin is defined correctly
+    if (!req.admin || !req.admin._id) {
+      console.error('Admin not found');
+      return res.status(400).json({ msg: 'Admin not authenticated properly' });
+    }
 
-    // Create a new product
+    // Create the product model with admin as the supplier
     const item = new productModels({
       name,
       type,
@@ -362,20 +402,22 @@ export const adminCreateProduct = async (req, res) => {
       price,
       stock,
       description,
-      imageUrls, // Store the image path
-      supplier,
-      status: 'approved', // Directly approved by admin
+      imageUrls,
+      supplier: req.admin._id,
+      status: 'approved',
+      businessName: 'XLAYN',
     });
 
-    // Save the product in the database
+    // Save the product to the database
     await item.save();
-
     res.status(200).json(item);
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error creating product:', err);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
+
+
 // Admin: Update Product
 export const adminUpdateProduct = async (req, res) => {
   const { id } = req.params;
@@ -420,3 +462,46 @@ export const adminDeleteProduct = async (req, res) => {
     res.status(500).send('Server error');
   }
 };
+
+
+// User: Get All Approved Products
+export const getAllApprovedProducts = async (req, res) => {
+  try {
+    // Fetch all approved products
+    const products = await productModels.find({ status: 'approved' });
+    
+    // Check if there are no products
+    if (!products.length) {
+      return res.status(404).json({ msg: 'No products found' });
+    }
+
+    // Return the products
+    res.status(200).json(products);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+
+
+// User: Get Approved Product by ID
+export const getApprovedProductById = async (req, res) => {
+  const { id } = req.params; // Extract the product ID from the request URL
+
+  try {
+    // Fetch the product by its ID and ensure it's approved
+    const product = await productModels.findOne({ _id: id, status: 'approved' });
+
+    // Check if the product was not found
+    if (!product) {
+      return res.status(404).json({ msg: 'Product not found or not approved' });
+    }
+
+    // Return the product details
+    res.status(200).json(product);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server error');
+  }
+};
+

@@ -32,9 +32,11 @@ import {
   adminCreateProduct,
   adminUpdateProduct,
   adminDeleteProduct,
+  getAllApprovedProducts,
+  getApprovedProductById
 } from '../controllers/productControllers.js';
 import { upload } from '../middleware/multer.js';
-import { authenticateUser } from '../middleware/authMiddleware.js';
+import { authenticateUser , protectAdmin } from '../middleware/authMiddleware.js';
 
 
 
@@ -42,14 +44,14 @@ const router = express.Router();
 
 // Supplier routes
 
-router.post('/supplier/products', upload.fields([
+router.post('/supplier/add-products', upload.fields([
   { name: 'imageUrls', maxCount: 1 },
 ]),authenticateUser, createProduct); // Add Product
-router.put('/supplier/products/:id', updateProduct); // Update Product
-router.delete('/supplier/products/:id', deleteProduct); // Delete Product
-router.get('/supplier/products/approved', getApprovedProducts); // Get Approved Products
-router.get('/supplier/products/rejected', getRejectedProducts); // Get Rejected Products
-router.get('/supplier/products/pending', getPendingProducts); // Get Pending Products
+router.put('/supplier/products/:id',authenticateUser, updateProduct); // Update Product
+router.delete('/supplier/products/:id',authenticateUser, deleteProduct); // Delete Product
+router.get('/supplier/products/approved',authenticateUser, getApprovedProducts); // Get Approved Products
+router.get('/supplier/products/rejected',authenticateUser, getRejectedProducts); // Get Rejected Products
+router.get('/supplier/products/pending', authenticateUser, getPendingProducts); // Get Pending Products
 
 // Admin routes
 router.get('/admin/products/pending', getAdminPendingProducts); // Get Pending Products
@@ -57,10 +59,17 @@ router.post('/admin/products/:id/approve', approveProduct); // Approve Product
 router.post('/admin/products/:id/reject', rejectProduct); // Reject Product
 router.get('/admin/products/approved', getAdminApprovedProducts); // Get Approved Products
 router.get('/admin/products/rejected', getAdminRejectedProducts); // Get Rejected Products
-router.post('/admin/products', upload.fields([
-  { name: 'imageUrls', maxCount: 1 },
-]), adminCreateProduct); // Add Product
+router.post('/admin/add-products', upload.array('imageUrls', 5), protectAdmin, (req, res, next) => {
+  console.log(req.files); // Log the uploaded files
+  next();
+}, adminCreateProduct);
 router.put('/admin/products/:id', adminUpdateProduct); // Update Product
 router.delete('/admin/products/:id', adminDeleteProduct); // Delete Product
+
+// User routs
+
+router.get('/products', getAllApprovedProducts);  //User get approved product
+router.get('/products/:id', getApprovedProductById);  //User get approved ById
+
 
 export default router;
