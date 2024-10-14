@@ -54,22 +54,22 @@ router.get('/supplier/products/rejected',authenticateUser, getRejectedProducts);
 router.get('/supplier/products/pending', authenticateUser, getPendingProducts); // Get Pending Products
 
 // Admin routes
-router.get('/admin/products/pending', getAdminPendingProducts); // Get Pending Products
-router.post('/admin/products/:id/approve', approveProduct); // Approve Product
-router.post('/admin/products/:id/reject', rejectProduct); // Reject Product
-router.get('/admin/products/approved', getAdminApprovedProducts); // Get Approved Products
-router.get('/admin/products/rejected', getAdminRejectedProducts); // Get Rejected Products
+router.get('/admin/products/pending', protectAdmin, getAdminPendingProducts); // Get Pending Products
+router.post('/admin/approveproducts/:id',protectAdmin, approveProduct); // Approve Product
+router.post('/admin/rejectproducts/:id',protectAdmin, rejectProduct); // Reject Product
+router.get('/admin/products/approved',protectAdmin, getAdminApprovedProducts); // Get Approved Products
+router.get('/admin/products/rejected',protectAdmin, getAdminRejectedProducts); // Get Rejected Products
 router.post('/admin/add-products', upload.array('imageUrls', 5), protectAdmin, (req, res, next) => {
   console.log(req.files); // Log the uploaded files
   next();
 }, adminCreateProduct);
-router.put('/admin/products/:id', adminUpdateProduct); // Update Product
-router.delete('/admin/products/:id', adminDeleteProduct); // Delete Product
+router.put('/admin/products/:id', upload.array('imageUrls', 5), protectAdmin, adminUpdateProduct); // Update Product
+router.delete('/admin/products/:id',protectAdmin, adminDeleteProduct); // Delete Product
 
 // User routs
 
-router.get('/products', getAllApprovedProducts);  //User get approved product
-router.get('/products/:id', getApprovedProductById);  //User get approved ById
+router.get('/user/get-products', getAllApprovedProducts);  //User get approved product
+router.get('/user/get-products/:id', getApprovedProductById);  //User get approved ById
 
 
 export default router;

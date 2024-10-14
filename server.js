@@ -48,6 +48,7 @@ import userRoutes from './routes/ userRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import registerRequestRoutes from './routes/registerRequestRoutes.js'
 import adminRoutes from './routes/adminRoutes.js';
+import contactRoutes from './routes/contactRoutes.js'
 
 dotenv.config();
 
@@ -79,6 +80,8 @@ app.use('/api/users', userRoutes);
 app. use ('/api/product',productRoutes);
 app. use ('/api/register-request', registerRequestRoutes);
 app. use ('/api/admin',adminRoutes);
+app.use('/api/contact', contactRoutes); // Adjust the base path as needed
+
 
 // Define error handlers before application routes
 app.use(notFound);

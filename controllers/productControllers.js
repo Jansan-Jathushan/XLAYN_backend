@@ -309,41 +309,62 @@ export const getAdminPendingProducts = async (req, res) => {
 export const approveProduct = async (req, res) => {
   const { id } = req.params;
   try {
-    const item = await productModels.findById(id);
+    // Find the product by ID and populate the supplier's email
+    const item = await productModels.findById(id).populate('supplier', 'email');
+    
     if (!item) {
       return res.status(404).json({ msg: 'Product not found' });
     }
 
+    // Check if the populated supplier has an email
+    if (!item.supplier || !item.supplier.email) {
+      return res.status(400).json({ msg: 'Supplier email not found' });
+    }
+
     item.status = 'approved';
     await item.save();
-    await notifySupplier(item.supplier.email, item.name, 'approved'); // Notify supplier
+
+    // Notify the supplier via email
+    await notifySupplier(item.supplier.email, item.name, 'approved');
 
     res.status(200).json(item);
   } catch (err) {
-    console.error(err.message);
+    console.error('Error approving product:', err.message);
     res.status(500).send('Server error');
   }
 };
+
 
 // Admin: Reject Product
 export const rejectProduct = async (req, res) => {
   const { id } = req.params;
   try {
-    const item = await productModels.findById(id);
+    // Find the product by ID and populate the supplier's email
+    const item = await productModels.findById(id).populate('supplier', 'email');
+    
     if (!item) {
       return res.status(404).json({ msg: 'Product not found' });
     }
 
+    // Check if the populated supplier has an email
+    if (!item.supplier || !item.supplier.email) {
+      return res.status(400).json({ msg: 'Supplier email not found' });
+    }
+
+    // Update the product status to "rejected"
     item.status = 'rejected';
     await item.save();
-    await notifySupplier(item.supplier.email, item.name, 'rejected'); // Notify supplier
+
+    // Notify the supplier via email
+    await notifySupplier(item.supplier.email, item.name, 'rejected');
 
     res.status(200).json(item);
   } catch (err) {
-    console.error(err.message);
+    console.error('Error rejecting product:', err.message);
     res.status(500).send('Server error');
   }
 };
+
 
 // Admin: Get Approved Products
 export const getAdminApprovedProducts = async (req, res) => {
@@ -370,7 +391,6 @@ export const getAdminRejectedProducts = async (req, res) => {
   }
 };
 
-// Admin: Add Product
 // Admin: Add Product
 export const adminCreateProduct = async (req, res) => {
   console.log('Request Body:', req.body);
@@ -420,30 +440,54 @@ export const adminCreateProduct = async (req, res) => {
 
 // Admin: Update Product
 export const adminUpdateProduct = async (req, res) => {
+  console.log('Admin:', req.admin);  // Add this line for debugging
+
   const { id } = req.params;
   const { name, type, weight, price, stock, description } = req.body;
 
+  console.log('Request Body:', req.body);
+  console.log('Uploaded Files:', req.files); // Log uploaded files
+
   try {
+    // Find the product by ID
     const item = await productModels.findById(id);
+    
     if (!item) {
+      console.error('Product not found with ID:', id);
       return res.status(404).json({ msg: 'Product not found' });
     }
 
-    // Update the product details
-    item.name = name;
-    item.type = type;
-    item.weight = weight;
-    item.price = price;
-    item.stock = stock;
-    item.description = description;
+    // Ensure req.admin is defined correctly
+    if (!req.admin || !req.admin._id) {
+      console.error('Admin not authenticated properly');
+      return res.status(400).json({ msg: 'Admin not authenticated properly' });
+    }
 
+    // Update the product details only if they are provided
+    if (name) item.name = name;
+    if (type) item.type = type;
+    if (weight) item.weight = weight;
+    if (price) item.price = price;
+    if (stock) item.stock = stock;
+    if (description) item.description = description;
+
+    // Handle image upload
+    if (req.files && req.files.length > 0) {
+      const imageUrls = req.files.map(file => file.path); // Get image paths
+      item.imageUrls = imageUrls; // Update the image URLs
+    }
+
+    // Save the updated product in the database
     await item.save();
-    res.status(200).json(item);
+    console.log('Product successfully updated:', item);
+
+    res.status(200).json({ msg: 'Product updated successfully', item });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error updating product:', err.message);
+    res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
+
 
 // Admin: Delete Product
 export const adminDeleteProduct = async (req, res) => {

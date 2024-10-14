@@ -3,6 +3,7 @@ import jwt from "jsonwebtoken";
 import User from "../Models/userModels.js";
 import Supplier from "../Models/supplierModel.js";
 import Wholesaler from "../Models/wholesalerModel.js";
+import asyncHandler from 'express-async-handler';
 
 
 
@@ -83,34 +84,40 @@ export const authenticateUser = async (req, res, next) => {
 
 
 
-export const protectAdmin = (req, res, next) => {
-  // Get token from cookies or Authorization header
-  const token = req.cookies.token || req.header('Authorization')?.replace('Bearer ', '');
 
-  if (!token) {
-    return res.status(401).json({ message: 'Not authorized, no token provided' });
+export const protectAdmin = async (req, res, next) => {
+  let token;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      // Extract token from header
+      token = req.headers.authorization.split(' ')[1];
+
+      // Decode token and get user ID
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+      // Find the user by ID and attach to request
+      const user = await User.findById(decoded.id);
+
+      // Check if the user is an admin
+      if (user && user.role === 'admin') {
+        req.admin = user; // Attach admin to req object
+
+        // Log to verify admin authentication
+        console.log('Authenticated admin:', req.admin);
+
+        next(); // Proceed to the next middleware or route handler
+      } else {
+        return res.status(401).json({ msg: 'Not authorized as an admin' });
+      }
+    } catch (error) {
+      console.error('Authentication failed:', error);
+      return res.status(401).json({ msg: 'Authentication failed' });
+    }
   }
 
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Check if the user is an admin
-    if (!decoded.isAdmin) {
-      return res.status(403).json({ message: 'Not authorized, admin only' });
-    }
-
-    // Attach admin info to request (you can also pass more details if needed)
-    req.admin = decoded;
-
-    next(); // Proceed to the next middleware or route handler
-  } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      return res.status(401).json({ message: 'Token expired, please log in again' });
-    }
-
-    console.error('Error verifying token', error);
-    return res.status(401).json({ message: 'Not authorized, token failed' });
+  if (!token) {
+    return res.status(401).json({ msg: 'No token provided' });
   }
 };
 

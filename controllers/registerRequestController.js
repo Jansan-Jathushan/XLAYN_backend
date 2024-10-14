@@ -3,6 +3,36 @@ import Wholesaler from '../Models/wholesalerModel.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import asyncHandler from 'express-async-handler';
+import nodemailer from 'nodemailer';
+
+// Setup Nodemailer transport
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER, // Your email
+    pass: process.env.GMAIL_PASS,    // App password from Gmail
+  },
+});
+
+// Send email function
+const sendEmail = (email, subject, text) => {
+  const mailOptions = {
+    from: process.env.GMAIL_USER,
+    to: email,
+    subject: subject,
+    text: text,
+  };
+
+  transporter.sendMail(mailOptions, (error, info) => {
+    if (error) {
+      console.log('Error sending email: ', error);
+    } else {
+      console.log('Email sent: ' + info.response);
+    }
+  });
+};
+
+
 
 // Register Supplier
 const registerSupplier = asyncHandler(async (req, res) => {
@@ -222,6 +252,10 @@ const approveSupplier = async (req, res) => {
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found.' });
     }
+
+    // Send approval email
+    sendEmail(supplier.email, 'Supplier Approved', 'Your supplier request has been approved.');
+
     res.status(200).json({ message: 'Supplier approved successfully!', supplier });
   } catch (error) {
     res.status(400).json({ error: 'Error approving supplier.' });
@@ -235,6 +269,10 @@ const rejectSupplier = async (req, res) => {
     if (!supplier) {
       return res.status(404).json({ error: 'Supplier not found.' });
     }
+
+    // Send rejection email
+    sendEmail(supplier.email, 'Supplier Rejected', 'Your supplier request has been rejected.');
+
     res.status(200).json({ message: 'Supplier rejected successfully!', supplier });
   } catch (error) {
     res.status(400).json({ error: 'Error rejecting supplier.' });
@@ -248,6 +286,10 @@ const approveWholesaler = async (req, res) => {
     if (!wholesaler) {
       return res.status(404).json({ error: 'Wholesaler not found.' });
     }
+
+    // Send approval email
+    sendEmail(wholesaler.email, 'Wholesaler Approved', 'Your wholesaler request has been approved.');
+
     res.status(200).json({ message: 'Wholesaler approved successfully!', wholesaler });
   } catch (error) {
     res.status(400).json({ error: 'Error approving wholesaler.' });
@@ -261,12 +303,15 @@ const rejectWholesaler = async (req, res) => {
     if (!wholesaler) {
       return res.status(404).json({ error: 'Wholesaler not found.' });
     }
+
+    // Send rejection email
+    sendEmail(wholesaler.email, 'Wholesaler Rejected', 'Your wholesaler request has been rejected.');
+
     res.status(200).json({ message: 'Wholesaler rejected successfully!', wholesaler });
   } catch (error) {
     res.status(400).json({ error: 'Error rejecting wholesaler.' });
   }
 };
-
 
 // Get all approved suppliers
 const getApprovedSuppliers = async (req, res) => {
