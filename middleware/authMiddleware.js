@@ -52,36 +52,36 @@ const checkRole = (roles) => {
   };
 };
 
-
 export const authenticateUser = async (req, res, next) => {
   const token = req.header('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
-    return res.status(401).json({ msg: 'No token, authorization denied' });
+      return res.status(401).json({ msg: 'No token, authorization denied' });
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Check if the decoded token is for a supplier
-    if (decoded.role === 'supplier') {
-      req.user = await Supplier.findById(decoded.id).select('-password');
-    } else {
-      req.user = await User.findById(decoded.id).select('-password');
-    }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      
+      // Check the role and find the user accordingly
+      if (decoded.role === 'supplier') {
+          req.user = await Supplier.findById(decoded.id).select('-password');
+      } else if (decoded.role === 'wholesaler') {
+          req.user = await Wholesaler.findById(decoded.id).select('-password'); // Fetch wholesaler details
+      } else {
+          req.user = await User.findById(decoded.id).select('-password'); // Fallback for regular users
+      }
 
-    if (!req.user) {
-      return res.status(401).json({ msg: 'User not authorized' });
-    }
+      if (!req.user) {
+          return res.status(401).json({ msg: 'User not authorized' });
+      }
 
-    console.log('Authenticated User:', req.user); // Debugging line
-    next();
+      console.log('Authenticated User:', req.user); // Debugging line
+      next();
   } catch (err) {
-    console.error(err);
-    res.status(401).json({ msg: 'Token is not valid' });
+      console.error(err);
+      res.status(401).json({ msg: 'Token is not valid' });
   }
 };
-
 
 
 

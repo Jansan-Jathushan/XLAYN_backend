@@ -4,6 +4,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import asyncHandler from 'express-async-handler';
 import nodemailer from 'nodemailer';
+import cloudinary from "../config/cloudinaryConfig.js";
+
 
 // Setup Nodemailer transport
 const transporter = nodemailer.createTransport({
@@ -38,21 +40,41 @@ const sendEmail = (email, subject, text) => {
 const registerSupplier = asyncHandler(async (req, res) => {
   const { username, businessName, email, password, address, bankAccountInfo } = req.body;
 
-  // File paths from uploaded files
-  const businessProof = req.files.businessProof ? req.files.businessProof[0].path : null;
-  const storeImage = req.files.storeImage ? req.files.storeImage[0].path : null;
+  // Upload business proof to Cloudinary
+  let businessProofUrl = null;
+if (req.files.businessProof) {
+  try {
+    const result = await cloudinary.uploader.upload(req.files.businessProof[0].path, {
+      folder: 'suppliers/business_proofs',
+    });
+    businessProofUrl = result.secure_url; // Get the URL from Cloudinary
+  } catch (error) {
+    return res.status(500).json({ message: 'Error uploading business proof', error });
+  }
+}
+
+let storeImageUrl = null;
+if (req.files.storeImage) {
+  try {
+    const result = await cloudinary.uploader.upload(req.files.storeImage[0].path, {
+      folder: 'suppliers/store_images',
+    });
+    storeImageUrl = result.secure_url; // Get the URL from Cloudinary
+  } catch (error) {
+    return res.status(500).json({ message: 'Error uploading store image', error });
+  }
+}
+
 
   // Check for missing required fields
-  if (!username || !businessName || !businessProof || !storeImage || !email || !password || !address || !bankAccountInfo) {
-    res.status(400).json({ message: 'All fields are required' });
-    return;
+  if (!username || !businessName || !businessProofUrl || !storeImageUrl || !email || !password || !address || !bankAccountInfo) {
+    return res.status(400).json({ message: 'All fields are required' });
   }
 
   // Check if the supplier already exists
   const supplierExists = await Supplier.findOne({ email });
   if (supplierExists) {
-    res.status(400).json({ message: 'Supplier already exists' });
-    return;
+    return res.status(400).json({ message: 'Supplier already exists' });
   }
 
   // Hash the password before saving
@@ -63,8 +85,8 @@ const registerSupplier = asyncHandler(async (req, res) => {
   const supplier = await Supplier.create({
     username,
     businessName,
-    businessProof,
-    storeImage,
+    businessProof: businessProofUrl, // Save the Cloudinary URL
+    storeImage: storeImageUrl, // Save the Cloudinary URL
     email,
     password: hashedPassword,
     address,
@@ -80,6 +102,7 @@ const registerSupplier = asyncHandler(async (req, res) => {
     res.status(400).json({ message: 'Invalid supplier data' });
   }
 });
+
 
 
 // Supplier login
@@ -138,31 +161,51 @@ const registerWholesaler = async (req, res) => {
     // Extracting fields from request body
     const { username, businessName, address, bankAccountInfo, email, password } = req.body;
 
-    // Accessing files uploaded through multer
-    const businessProof = req.files['businessProof'] ? req.files['businessProof'][0].path : null;
-    const storeImage = req.files['storeImage'] ? req.files['storeImage'][0].path : null;
+    // Upload business proof to Cloudinary
+    let businessProofUrl = null;
+    if (req.files['businessProof']) {
+      try {
+        const result = await cloudinary.uploader.upload(req.files['businessProof'][0].path, {
+          folder: 'wholesalers/business_proofs', // Optional: Specify folder
+        });
+        businessProofUrl = result.secure_url; // Get the secure URL of the uploaded file
+      } catch (error) {
+        return res.status(500).json({ message: 'Error uploading business proof', error: error.message });
+      }
+    }
+
+    // Upload store image to Cloudinary
+    let storeImageUrl = null;
+    if (req.files['storeImage']) {
+      try {
+        const result = await cloudinary.uploader.upload(req.files['storeImage'][0].path, {
+          folder: 'wholesalers/store_images', // Optional: Specify folder
+        });
+        storeImageUrl = result.secure_url; // Get the secure URL of the uploaded file
+      } catch (error) {
+        return res.status(500).json({ message: 'Error uploading store image', error: error.message });
+      }
+    }
 
     // Check if all required fields and files are present
-    if (!username || !businessName || !address || !bankAccountInfo || !email || !password || !businessProof || !storeImage) {
+    if (!username || !businessName || !address || !bankAccountInfo || !email || !password || !businessProofUrl || !storeImageUrl) {
       return res.status(400).json({ message: 'All fields are required, including businessProof and storeImage.' });
     }
 
-// Hash the password before saving
-const salt = await bcrypt.genSalt(10); // Generate a salt
-const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
-
-
+    // Hash the password before saving
+    const salt = await bcrypt.genSalt(10); // Generate a salt
+    const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
 
     // Create new wholesaler object
     const newWholesaler = new Wholesaler({
       username,
       businessName,
       address,
-      businessProof,
-      storeImage,
+      businessProof: businessProofUrl,  // Use Cloudinary URL
+      storeImage: storeImageUrl,  // Use Cloudinary URL
       bankAccountInfo,
       email,
-      password:hashedPassword
+      password: hashedPassword,
     });
 
     // Save wholesaler to the database
@@ -172,9 +215,10 @@ const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
     res.status(201).json({ message: 'Wholesaler registration successful!' });
   } catch (error) {
     // Error handling
-    res.status(400).json({ error: 'Error registering wholesaler.' });
+    res.status(400).json({ error: 'Error registering wholesaler.', details: error.message });
   }
 };
+
 
 // Wholesaler login
 const wholesalerLogin = asyncHandler(async (req, res) => {

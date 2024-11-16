@@ -24,12 +24,15 @@ import {
   getApprovedProducts,
   getRejectedProducts,
   getPendingProducts,
+  getPendingProductsById,
   getAdminPendingProducts,
+  adminGetProductById,
   approveProduct,
   rejectProduct,
   getAdminApprovedProducts,
   getAdminRejectedProducts,
   adminCreateProduct,
+  adminGetProducts,
   adminUpdateProduct,
   adminDeleteProduct,
   getAllApprovedProducts,
@@ -44,14 +47,17 @@ const router = express.Router();
 
 // Supplier routes
 
-router.post('/supplier/add-products', upload.fields([
-  { name: 'imageUrls', maxCount: 1 },
-]),authenticateUser, createProduct); // Add Product
-router.put('/supplier/products/:id',authenticateUser, updateProduct); // Update Product
+router.post('/supplier/add-products', upload.array('imageUrls', 5),  (req, res, next) => {
+  console.log(req.files); // Log the uploaded files
+  next();
+},authenticateUser, createProduct); // Add Product
+router.put('/supplier/products/:id',upload.array('imageUrls', 5) ,authenticateUser, updateProduct); // Update Product
 router.delete('/supplier/products/:id',authenticateUser, deleteProduct); // Delete Product
 router.get('/supplier/products/approved',authenticateUser, getApprovedProducts); // Get Approved Products
 router.get('/supplier/products/rejected',authenticateUser, getRejectedProducts); // Get Rejected Products
 router.get('/supplier/products/pending', authenticateUser, getPendingProducts); // Get Pending Products
+router.get('/supplier/products/pending/:supplierId', getPendingProductsById);
+
 
 // Admin routes
 router.get('/admin/products/pending', protectAdmin, getAdminPendingProducts); // Get Pending Products
@@ -63,6 +69,8 @@ router.post('/admin/add-products', upload.array('imageUrls', 5), protectAdmin, (
   console.log(req.files); // Log the uploaded files
   next();
 }, adminCreateProduct);
+router.get('/admin/get-products',protectAdmin, adminGetProducts);
+router.get('/admin/get-products/:productId',protectAdmin, adminGetProductById);
 router.put('/admin/products/:id', upload.array('imageUrls', 5), protectAdmin, adminUpdateProduct); // Update Product
 router.delete('/admin/products/:id',protectAdmin, adminDeleteProduct); // Delete Product
 

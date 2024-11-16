@@ -13,7 +13,7 @@ const router = express.Router();
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
-router.post('/logout', protect,logoutUser);
+router.post('/logout',logoutUser);
 router.put('/updateProfile', protect, updateUserProfile);
 router.get('/profile', protect,getUserProfile);
 router.get('/allProfile', protect,checkRole(['admin']), getAllUsersProfile);
