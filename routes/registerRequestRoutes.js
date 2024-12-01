@@ -3,8 +3,10 @@ const router = express.Router();
 import {
   registerSupplier,
   supplierLogin,
+  getSupplierById,
   registerWholesaler,
   wholesalerLogin,
+  getWholesalerById,
   getPendingSupplierRequests,
   getPendingWholesalerRequests,
   approveSupplier,
@@ -54,6 +56,10 @@ router.get('/rejected-suppliers', getRejectedSuppliers);
 // Define routes for wholesalers
 router.get('/approved-wholesalers', getApprovedWholesalers);
 router.get('/rejected-wholesalers', getRejectedWholesalers);
+
+router.get('/get-supplier/:supplierId', getSupplierById);
+router.get('/get-wholesaler/:wholesalerId', getWholesalerById);
+
 
 
 

@@ -79,6 +79,7 @@ export const addToCart = async (req, res) => {
             cart.items.push({
                 productId: product._id,
                 productName: product.name,
+                productImage: product.imageUrls,
                 supplierId: supplier._id,
                 supplierType,
                 supplierBusinessName: supplier.businessName || supplier.username,

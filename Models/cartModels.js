@@ -11,6 +11,12 @@ const CartItemSchema = new mongoose.Schema({
         type: String,
         required: true // Product Name
     },
+
+    productImage: [{ 
+        type: String, 
+        required: true // Product Image
+      }],
+
     supplierId: {
         type: mongoose.Schema.Types.ObjectId,
         required: true

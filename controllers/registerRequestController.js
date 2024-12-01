@@ -155,6 +155,39 @@ const supplierLogin = asyncHandler(async (req, res) => {
 });
 
 
+
+const getSupplierById = asyncHandler(async (req, res) => {
+  const { supplierId } = req.params;
+
+  try {
+    // Find the supplier by their ID
+    const supplier = await Supplier.findById(supplierId);
+
+    // Check if supplier exists
+    if (!supplier) {
+      return res.status(404).json({ message: 'Supplier not found' });
+    }
+
+    // Return the supplier details
+    res.status(200).json({
+      supplierId: supplier._id,
+      username: supplier.username,
+      businessName: supplier.businessName,
+      businessProof: supplier.businessProof,
+      storeImage: supplier.storeImage,
+      email: supplier.email,
+      address: supplier.address,
+      bankAccountInfo: supplier.bankAccountInfo,
+      createdAt: supplier.createdAt,
+      updatedAt: supplier.updatedAt,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving supplier details', error });
+  }
+});
+
+
+
 // Register Wholesaler
 const registerWholesaler = async (req, res) => {
   try {
@@ -268,6 +301,39 @@ const wholesalerLogin = asyncHandler(async (req, res) => {
     res.status(500).json({ message: 'Error logging in wholesaler', error });
   }
 });
+
+
+const getWholesalerById = asyncHandler(async (req, res) => {
+  const { wholesalerId } = req.params;
+
+  try {
+    // Find the wholesaler by their ID
+    const wholesaler = await Wholesaler.findById(wholesalerId);
+
+    // Check if the wholesaler exists
+    if (!wholesaler) {
+      return res.status(404).json({ message: 'Wholesaler not found' });
+    }
+
+    // Return the wholesaler details
+    res.status(200).json({
+      wholesalerId: wholesaler._id,
+      username: wholesaler.username,
+      businessName: wholesaler.businessName,
+      businessProof: wholesaler.businessProof,
+      storeImage: wholesaler.storeImage,
+      email: wholesaler.email,
+      address: wholesaler.address,
+      bankAccountInfo: wholesaler.bankAccountInfo,
+      createdAt: wholesaler.createdAt,
+      updatedAt: wholesaler.updatedAt,
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving wholesaler details', error: error.message });
+  }
+});
+
+
 
 // Get Pending Supplier Requests
 const getPendingSupplierRequests = async (req, res) => {
@@ -400,8 +466,10 @@ const getApprovedSuppliers = async (req, res) => {
 export {
   registerSupplier,
   supplierLogin,
+  getSupplierById,
   registerWholesaler,
   wholesalerLogin,
+  getWholesalerById,
   getPendingSupplierRequests,
   getPendingWholesalerRequests,
   approveSupplier,
@@ -412,6 +480,7 @@ export {
   getRejectedSuppliers,
   getApprovedWholesalers,
   getRejectedWholesalers,
+  
 };
 
 

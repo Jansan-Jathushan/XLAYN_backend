@@ -321,28 +321,28 @@ const logoutUser = (req, res) => {
 // @desc    Get user profile
 // @route   GET /api/users/profile
 // @access  Private
-const getUserProfile = asyncHandler(async(req,res) =>{
+const getUserById = asyncHandler(async (req, res) => {
+  const { id } = req.params;  // Get user ID from URL parameter
 
-  try { 
-    const id = req.user._id;
-    // console.log(id);
-    const user = await User.findById(id);
-    //console.log(user);
-    if(user){
+  // Find the user by ID
+  const user = await User.findById(id);
 
-
-
-
-      res.status(200).json(user);
-
-    } else {   
-       res.status(404).json({message: 'Users not found'});
-  }
-    
-  } catch (error) {
-    res.status(500).json({message: error.message});
+  if (user) {
+    // Send user details in response if user found
+    res.status(200).json({
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      username: user.username,
+      email: user.email,
+      role: user.role,
+    });
+  } else {
+    res.status(404).json({ message: 'User not found' });
   }
 });
+
+
 
 
 const getAllUsersProfile = asyncHandler(async(req,res) =>{
@@ -400,7 +400,7 @@ export {
   loginUser,
   registerUser,
   logoutUser,
-  getUserProfile,
+  getUserById,
   getAllUsersProfile,
   updateUserProfile,
 };

@@ -3,6 +3,7 @@ import {
   createContactForm,
   getAllContactForms,
   getContactFormById,
+  replyToContactForm,
 } from '../controllers/contactControllers.js'; // Adjust the path as necessary
 
 const router = express.Router();
@@ -15,5 +16,7 @@ router.get('/contact-us', getAllContactForms);
 
 // Route to get a specific contact form by ID (for admin)
 router.get('/contact-us/:id', getContactFormById);
+
+router.get('/contact-us/reply/:id', replyToContactForm);
 
 export default router;

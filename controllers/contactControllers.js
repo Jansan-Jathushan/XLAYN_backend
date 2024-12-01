@@ -50,3 +50,22 @@ export const getContactFormById = async (req, res) => {
     res.status(500).json({ message: 'Error fetching contact form', error });
   }
 };
+
+export const replyToContactForm = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const contact = await ContactForm.findById(id);
+
+    if (!contact) {
+      return res.status(404).json({ message: 'Contact form not found' });
+    }
+
+    res.status(200).json({
+      email: contact.email,
+      message: `Replying to the user with ID ${id}`
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching contact form', error });
+  }
+};

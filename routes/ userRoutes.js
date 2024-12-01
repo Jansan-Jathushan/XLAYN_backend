@@ -3,20 +3,20 @@ import {
   loginUser,
   registerUser,
   logoutUser,
-  getUserProfile,
+  getUserById,
   getAllUsersProfile,
   updateUserProfile,
 } from '../controllers/userController.js';
-import { checkRole,protect} from '../middleware/authMiddleware.js';
+import { protectAdmin} from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/logout',logoutUser);
-router.put('/updateProfile', protect, updateUserProfile);
-router.get('/profile', protect,getUserProfile);
-router.get('/allProfile', protect,checkRole(['admin']), getAllUsersProfile);
+router.put('/updateProfile', protectAdmin, updateUserProfile);
+router.get('/profile/:id', getUserById);
+router.get('/allProfile', getAllUsersProfile);
 
 
 export default router;

@@ -30,7 +30,7 @@ export const makePayment = async (req, res) => {
           currency: "usd",
           product_data: {
             name: 'XLAYN',
-            images: ["https://res.cloudinary.com/ddctt6pye/image/upload/v1730032160/t5czmyugygshax503iz7.jpg"],
+            images: ["https://i.ibb.co/FqLrrjC/srtipewallpaper.webp"],
           },
           unit_amount: total * 100,
         },
