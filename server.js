@@ -159,7 +159,13 @@ app.use('/api/order-pay', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 
 
-
+app.get('/', (req, res) => {
+  try {
+      res.json("XLAYN")
+  } catch (error) {
+      res.json(error)
+  }
+})
 
 // Define error handlers before application routes
 app.use(notFound);
