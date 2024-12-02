@@ -43,8 +43,8 @@ export const makePayment = async (req, res) => {
       line_items,
       mode: "payment",
       customer: customer.id,
-      success_url: `http://localhost:3000/`,
-      cancel_url: `http://localhost:3000/cartpage`,
+      success_url: 'http://localhost:3000/',
+      cancel_url: 'http://localhost:3000/cartpage',
     });
 
     res.status(200).json({ url: session.url });

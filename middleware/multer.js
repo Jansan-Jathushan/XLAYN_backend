@@ -61,7 +61,7 @@
 //   }
 // });
 
-// app.post('http://localhost:5000/api/product/admin/add-products', upload.array('imageUrls', 5), (req, res) => {
+// app.post('${process.env.REACT_APP_SERVER_HOSTNAME}/api/product/admin/add-products', upload.array('imageUrls', 5), (req, res) => {
 //   console.log('Files:', req.files); // Log files for debugging
 //   if (!req.files || req.files.length === 0) {
 //     return res.status(400).json({ msg: 'No files were uploaded.' });
@@ -69,7 +69,7 @@
 //   res.status(200).json({ msg: 'Files uploaded successfully!', files: req.files });
 // });
 
-// app.post('http://localhost:5000/api/product/supplier/add-products', upload.array('imageUrls', 5), (req, res) => {
+// app.post('${process.env.REACT_APP_SERVER_HOSTNAME}/api/product/supplier/add-products', upload.array('imageUrls', 5), (req, res) => {
 //   console.log('Files:', req.files); // Log files for debugging
 //   if (!req.files || req.files.length === 0) {
 //     return res.status(400).json({ msg: 'No files were uploaded.' });

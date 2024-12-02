@@ -51,7 +51,7 @@
 // // Pre-save middleware to automatically set the supplier field
 // ProductSchema.pre('save', function (next) {
 //   if (!this.supplier) {
-//     // Assuming `this.SupplierId` contains the current supplier's ID
+//     // Assuming 'this.SupplierId' contains the current supplier's ID
 //     this.supplier = this.SupplierId; 
 //   }
 //   next();

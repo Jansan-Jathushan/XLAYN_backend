@@ -46,7 +46,7 @@ export const addToCart = async (req, res) => {
 
         // Check if the requested quantity exceeds available stock
         if (quantity > product.stock) {
-            return res.status(400).json({ message: `Only ${product.stock} units of ${product.name} are available.` });
+            return res.status(400).json({ message: `Only ${product.stock} units of ${product.name} are available.`});
         }
 
         // Find supplier details for the product

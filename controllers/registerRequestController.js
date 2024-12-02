@@ -5,6 +5,9 @@ import jwt from 'jsonwebtoken';
 import asyncHandler from 'express-async-handler';
 import nodemailer from 'nodemailer';
 import cloudinary from "../config/cloudinaryConfig.js";
+import dotenv from 'dotenv';
+
+dotenv.config(); // Load environment variables from .env file
 
 
 // Setup Nodemailer transport

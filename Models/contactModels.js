@@ -16,7 +16,7 @@ const contactFormSchema = new mongoose.Schema({
         // Email format validation regex
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
       },
-      message: (props) => `${props.value} is not a valid email!`,
+      message: (props) => '${props.value} is not a valid email!',
     },
   },
   phoneNumber: {
@@ -28,7 +28,7 @@ const contactFormSchema = new mongoose.Schema({
         // Phone number format validation (example: 10 digits)
         return /^\d{10}$/.test(v) || !v; // Optional field
       },
-      message: (props) => `${props.value} is not a valid phone number!`,
+      message: (props) => '${props.value} is not a valid phone number!',
     },
   },
   subject: {

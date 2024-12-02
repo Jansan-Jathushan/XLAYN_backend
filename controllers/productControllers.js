@@ -11,7 +11,7 @@
 //       res.status(500).send('Server error');
 //     }
 //   };
-  
+
 //   // Function to get an item by ID
 //   export const getProductById = async (req, res) => {
 //     try {
@@ -25,8 +25,8 @@
 //       res.status(500).send('Server error');
 //     }
 //   };
-  
- 
+
+
 //   export const createProduct = async (req, res) => {
 //     const { name, type, items} = req.body;
 //       const file=req.files;
@@ -66,29 +66,29 @@
 //   //     if (!file) {
 //   //       return res.status(400).json({ message: 'No file uploaded' });
 //   //     }
-  
+
 //   //     const result = await cloudinary.uploader.upload(file.path); // Upload the file to Cloudinary
-  
+
 //   //     // Handle the uploaded file result
 //   //     return res.status(200).json({ message: 'Product created successfully', imageUrl: result.secure_url });
-  
+
 //   //   } catch (error) {
 //   //     return res.status(500).json({ message: error.message });
 //   //   }
 //   // };
-  
+
 //   // Function to update an item
-  
+
 //   export const updateProducts = async (req, res) => {
 //     try {
 //       let item = await productModels.findById(req.params.id);
 //       if (!item) {
 //         return res.status(404).json({ msg: 'Product not found' });
 //       }
-  
+
 //       // Update item details
 //       item = await productModels.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  
+
 //       res.status(200).json(item);
 //     } catch (err) {
 //       console.error(err.message);
@@ -103,10 +103,10 @@
 //       if (!item) {
 //         return res.status(404).json({ msg: 'Product not found' });
 //       }
-  
+
 //       // delete item details
 //       item = await productModels.findByIdAndDelete(req.params.id, { new: true });
-  
+
 //       res.status(200).json({message:"product deleted",item:item});
 //     } catch (err) {
 //       console.error(err.message);
@@ -122,7 +122,9 @@ import asyncHandler from 'express-async-handler';
 import nodemailer from "nodemailer";
 // import { authenticateUser } from '../middleware/authMiddleware.js';
 
+import dotenv from 'dotenv';
 
+dotenv.config(); // Load environment variables from .env file
 // Setup Nodemailers
 // const nodemailer = require('nodemailer');
 
@@ -154,7 +156,7 @@ const notifySupplier = async (supplierEmail, productName, status) => {
 //     ? req.files.map(file => file.path)
 //     : [];
 
-    
+
 
 //   try {
 //     // Check if file is uploaded
@@ -211,8 +213,8 @@ export const createProduct = async (req, res) => {
     }
 
     // Retrieve authenticated supplier data
-    const supplierId = req.user._id; 
-    const businessName = req.user.businessName; 
+    const supplierId = req.user._id;
+    const businessName = req.user.businessName;
 
     // Create a new product with the supplier data and uploaded image URLs
     const item = new productModels({
@@ -432,7 +434,7 @@ export const approveProduct = async (req, res) => {
   try {
     // Find the product by ID and populate the supplier's email
     const item = await productModels.findById(id).populate('supplier', 'email');
-    
+
     if (!item) {
       return res.status(404).json({ msg: 'Product not found' });
     }
@@ -462,7 +464,7 @@ export const rejectProduct = async (req, res) => {
   try {
     // Find the product by ID and populate the supplier's email
     const item = await productModels.findById(id).populate('supplier', 'email');
-    
+
     if (!item) {
       return res.status(404).json({ msg: 'Product not found' });
     }
@@ -504,10 +506,10 @@ export const getAdminRejectedProducts = async (req, res) => {
     const items = await productModels.find({ status: 'rejected' });
     res.status(200).json(items);
   } catch (err) {
-    console.error(err.message);const imageUrls = req.files['imageUrls'] && req.files['imageUrls'].length > 0 
-    ? req.files['imageUrls'][0].path 
-    : null;
-  
+    console.error(err.message); const imageUrls = req.files['imageUrls'] && req.files['imageUrls'].length > 0
+      ? req.files['imageUrls'][0].path
+      : null;
+
     res.status(500).send('Server error');
   }
 };
@@ -674,7 +676,7 @@ export const adminGetProductById = async (req, res) => {
 //   try {
 //     // Find the product by ID
 //     const item = await productModels.findById(id);
-    
+
 //     if (!item) {
 //       console.error('Product not found with ID:', id);
 //       return res.status(404).json({ msg: 'Product not found' });
@@ -725,7 +727,7 @@ export const adminUpdateProduct = async (req, res) => {
   try {
     // Find the product by ID
     const item = await productModels.findById(id);
-    
+
     if (!item) {
       return res.status(404).json({ msg: 'Product not found' });
     }
@@ -802,7 +804,7 @@ export const getAllApprovedProducts = async (req, res) => {
   try {
     // Fetch all approved products
     const products = await productModels.find({ status: 'approved' });
-    
+
     // Check if there are no products
     if (!products.length) {
       return res.status(404).json({ msg: 'No products found' });

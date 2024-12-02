@@ -32,7 +32,7 @@
 // app.use(errorHandler);
 
 // app.listen(port, () => {
-//   console.log(`Server running on port ${port}`);
+//   console.log('Server running on port ${port}');
 // });
 
 
@@ -83,7 +83,7 @@ app.post('/api/pay/webhook', express.raw({type: 'application/json'}), (request, 
    
     
   } catch (err) {
-    response.status(400).send(`Webhook Error: ${err.message}`);
+    response.status(400).send('Webhook Error: ${err.message}');
     console.log(err);
     return;
   }
