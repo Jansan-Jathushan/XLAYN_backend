@@ -120,6 +120,8 @@ import productModels from "../Models/productModels.js";
 import cloudinary from "../config/cloudinaryConfig.js";
 import asyncHandler from 'express-async-handler';
 import nodemailer from "nodemailer";
+import { uploadToCloudinary } from '../middleware/multer.js'; // Assuming `uploadToCloudinary` is in `utils/upload.js`
+
 // import { authenticateUser } from '../middleware/authMiddleware.js';
 
 import dotenv from 'dotenv';
@@ -150,25 +152,39 @@ const notifySupplier = async (supplierEmail, productName, status) => {
 };
 
 // Supplier: Add Product
+
+
 // export const createProduct = async (req, res) => {
 //   const { name, type, weight, price, stock, description } = req.body;
-//   const imageUrls = req.files && req.files.length > 0 
-//     ? req.files.map(file => file.path)
-//     : [];
-
-
 
 //   try {
-//     // Check if file is uploaded
-//     if (!imageUrls) {
-//       return res.status(400).json({ msg: 'No file uploaded' });
-//     }
+//     // Verify that files have been uploaded
+//     // if (!req.files || req.files.length === 0) {
+//     //   return res.status(400).json({ msg: 'No files uploaded' });
+//     // }
 
-//     // Use the authenticated supplier data from req.user
-//     const supplierId = req.user._id; 
-//     const businessName = req.user.businessName; 
+//     // Upload each file to Cloudinary and collect URLs
+//     // const imageUrls = [];
+//     // for (const file of req.files) {
+//     //   const result = await cloudinary.uploader.upload(file.path, {
+//     //     folder: 'products', // Organize files in a 'products' folder on Cloudinary
+//     //   });
+//     //   imageUrls.push(result.secure_url); // Save each URL to the imageUrls array
+//     // }
 
-//     // Create a new product
+//     const imageUrls = await Promise.all(
+//       req.files.map((file) =>
+//         cloudinary.uploader.upload(file.path, {
+//           folder: 'products',
+//         }).then((result) => result.secure_url)
+//       )
+//     );
+
+//     // Retrieve authenticated supplier data
+//     const supplierId = req.user._id;
+//     const businessName = req.user.businessName;
+
+//     // Create a new product with the supplier data and uploaded image URLs
 //     const item = new productModels({
 //       name,
 //       type,
@@ -176,19 +192,20 @@ const notifySupplier = async (supplierEmail, productName, status) => {
 //       price,
 //       stock,
 //       description,
-//       imageUrls, // Store the image path
-//       supplier: supplierId, // Automatically assign the supplier ID
-//       businessName, // Automatically assign the supplier's business name
-//       status: 'pending', // Set initial status to pending
+//       imageUrls, // Cloudinary URLs for images
+//       supplier: supplierId,
+//       businessName,
+//       status: 'pending',
 //     });
 
-//     // Save the product in the database
+//     // Save the new product to the database
 //     await item.save();
 
-//     res.status(200).json(item);
+//     // Respond with the saved product
+//     res.status(201).json({ success: true, product: item });
 //   } catch (err) {
-//     console.error(err.message);
-//     res.status(500).send('Server error');
+//     console.error('Error in createProduct:', err.message);
+//     res.status(500).json({ success: false, message: 'Server error' });
 //   }
 // };
 
@@ -198,33 +215,25 @@ export const createProduct = async (req, res) => {
   const { name, type, weight, price, stock, description } = req.body;
 
   try {
-    // Verify that files have been uploaded
-    // if (!req.files || req.files.length === 0) {
-    //   return res.status(400).json({ msg: 'No files uploaded' });
-    // }
+    // Ensure files are uploaded
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ success: false, message: 'No image files uploaded' });
+    }
 
-    // Upload each file to Cloudinary and collect URLs
-    // const imageUrls = [];
-    // for (const file of req.files) {
-    //   const result = await cloudinary.uploader.upload(file.path, {
-    //     folder: 'products', // Organize files in a 'products' folder on Cloudinary
-    //   });
-    //   imageUrls.push(result.secure_url); // Save each URL to the imageUrls array
-    // }
-
+    // Upload images to Cloudinary directly
     const imageUrls = await Promise.all(
-      req.files.map((file) =>
-        cloudinary.uploader.upload(file.path, {
-          folder: 'products',
-        }).then((result) => result.secure_url)
-      )
+      req.files.map((file) => uploadToCloudinary(file.buffer, 'products'))
     );
 
-    // Retrieve authenticated supplier data
+    // Ensure req.user contains supplier information
+    if (!req.user || !req.user._id || !req.user.businessName) {
+      return res.status(400).json({ success: false, message: 'User not authenticated properly' });
+    }
+
     const supplierId = req.user._id;
     const businessName = req.user.businessName;
 
-    // Create a new product with the supplier data and uploaded image URLs
+    // Create the product model with supplier data and image URLs
     const item = new productModels({
       name,
       type,
@@ -232,24 +241,27 @@ export const createProduct = async (req, res) => {
       price,
       stock,
       description,
-      imageUrls, // Cloudinary URLs for images
+      imageUrls,
       supplier: supplierId,
       businessName,
-      status: 'pending',
+      status: 'pending', // Default status for new products
     });
 
-    // Save the new product to the database
+    // Save the product to the database
     await item.save();
 
-    // Respond with the saved product
+    // Respond with the created product
     res.status(201).json({ success: true, product: item });
   } catch (err) {
     console.error('Error in createProduct:', err.message);
-    res.status(500).json({ success: false, message: 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
 
+
 // Supplier: Update Product
+
+
 // export const updateProduct = async (req, res) => {
 //   const { id } = req.params;
 //   const { name, type, weight, price, stock, description } = req.body;
@@ -275,21 +287,48 @@ export const createProduct = async (req, res) => {
 //     if (stock) item.stock = stock;
 //     if (description) item.description = description;
 
-//     // Handle image upload
+//     // Handle image upload to Cloudinary if files are provided
 //     if (req.files && req.files.length > 0) {
-//       const imageUrls = req.files.map(file => file.path); // Get image paths
-//       item.imageUrls = imageUrls; // Update the image URLs
+//       // Upload new images to Cloudinary
+//       // const imageUrls = [];
+//       // for (const file of req.files) {
+//       //   const result = await cloudinary.uploader.upload(file.path, {
+//       //     folder: 'products', // Organize files in a specific folder on Cloudinary
+//       //   });
+//       //   imageUrls.push(result.secure_url); // Collect image URLs
+//       // }
+
+//       const imageUrls = await Promise.all(
+//         req.files.map((file) =>
+//           cloudinary.uploader.upload(file.path, {
+//             folder: 'products',
+//           }).then((result) => result.secure_url)
+//         )
+//       );
+
+//       // Optionally, delete old images from Cloudinary (if you want to remove them)
+//       if (item.imageUrls && item.imageUrls.length > 0) {
+//         for (const oldImage of item.imageUrls) {
+//           const publicId = oldImage.split('/').pop().split('.')[0]; // Extract public ID
+//           await cloudinary.uploader.destroy(publicId); // Delete image from Cloudinary
+//         }
+//       }
+
+//       // Update the product with the new image URLs
+//       item.imageUrls = imageUrls;
 //     }
 
 //     // Save the updated product in the database
 //     await item.save();
 
+//     // Respond with the updated product
 //     res.status(200).json(item);
 //   } catch (err) {
 //     console.error(err.message);
 //     res.status(500).send('Server error');
 //   }
 // };
+
 
 export const updateProduct = async (req, res) => {
   const { id } = req.params;
@@ -299,13 +338,13 @@ export const updateProduct = async (req, res) => {
     // Find the product by ID
     const item = await productModels.findById(id);
     if (!item) {
-      return res.status(404).json({ msg: 'Product not found' });
+      return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
     // Validate if the logged-in supplier is the owner of the product
-    const supplierId = req.user._id; // Assuming you have the supplier ID in req.user
+    const supplierId = req.user._id; // Assuming `req.user` contains the supplier ID
     if (item.supplier.toString() !== supplierId.toString()) {
-      return res.status(403).json({ msg: 'Not authorized to update this product' });
+      return res.status(403).json({ success: false, message: 'Not authorized to update this product' });
     }
 
     // Update the product details only if they are provided
@@ -319,27 +358,19 @@ export const updateProduct = async (req, res) => {
     // Handle image upload to Cloudinary if files are provided
     if (req.files && req.files.length > 0) {
       // Upload new images to Cloudinary
-      // const imageUrls = [];
-      // for (const file of req.files) {
-      //   const result = await cloudinary.uploader.upload(file.path, {
-      //     folder: 'products', // Organize files in a specific folder on Cloudinary
-      //   });
-      //   imageUrls.push(result.secure_url); // Collect image URLs
-      // }
-
       const imageUrls = await Promise.all(
-        req.files.map((file) =>
-          cloudinary.uploader.upload(file.path, {
-            folder: 'products',
-          }).then((result) => result.secure_url)
-        )
+        req.files.map((file) => uploadToCloudinary(file.buffer, 'products'))
       );
 
-      // Optionally, delete old images from Cloudinary (if you want to remove them)
+      // Optionally, delete old images from Cloudinary
       if (item.imageUrls && item.imageUrls.length > 0) {
         for (const oldImage of item.imageUrls) {
           const publicId = oldImage.split('/').pop().split('.')[0]; // Extract public ID
-          await cloudinary.uploader.destroy(publicId); // Delete image from Cloudinary
+          try {
+            await cloudinary.uploader.destroy(publicId); // Delete image from Cloudinary
+          } catch (err) {
+            console.warn(`Failed to delete image ${publicId}:`, err.message); // Log warning if deletion fails
+          }
         }
       }
 
@@ -351,13 +382,12 @@ export const updateProduct = async (req, res) => {
     await item.save();
 
     // Respond with the updated product
-    res.status(200).json(item);
+    res.status(200).json({ success: true, message: 'Product updated successfully', product: item });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server error');
+    console.error('Error updating product:', err.message);
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
-
 
 
 // Supplier: Delete Product
@@ -531,25 +561,38 @@ export const getAdminRejectedProducts = async (req, res) => {
 };
 
 // // Admin: Add Product
+
 // export const adminCreateProduct = async (req, res) => {
 //   console.log('Request Body:', req.body);
 //   console.log('Uploaded Files:', req.files); // Log uploaded files
 
 //   const { name, type, weight, price, stock, description } = req.body;
 
-//   const imageUrls = req.files && req.files.length > 0 
-//     ? req.files.map(file => file.path)
-//     : [];
-
 //   try {
-//     if (imageUrls.length === 0) {
-//       console.error('No image files uploaded');
-//       return res.status(400).json({ msg: 'No image files uploaded' });
-//     }
+//     // Ensure files are uploaded
+//     // if (!req.files || req.files.length === 0) {
+//     //   return res.status(400).json({ msg: 'No image files uploaded' });
+//     // }
+
+//     // Upload images to Cloudinary
+//     // const imageUrls = [];
+//     // for (const file of req.files) {
+//     //   const result = await cloudinary.uploader.upload(file.path, {
+//     //     folder: 'products', // Organize the images in a specific folder
+//     //   });
+//     //   imageUrls.push(result.secure_url); // Collect the secure URLs of the uploaded images
+//     // }
+
+//     const imageUrls = await Promise.all(
+//       req.files.map((file) =>
+//         cloudinary.uploader.upload(file.path, {
+//           folder: 'products',
+//         }).then((result) => result.secure_url)
+//       )
+//     );
 
 //     // Ensure req.admin is defined correctly
 //     if (!req.admin || !req.admin._id) {
-//       console.error('Admin not found');
 //       return res.status(400).json({ msg: 'Admin not authenticated properly' });
 //     }
 
@@ -564,7 +607,7 @@ export const getAdminRejectedProducts = async (req, res) => {
 //       imageUrls,
 //       supplier: req.admin._id,
 //       status: 'approved',
-//       businessName: 'XLAYN',
+//       businessName: 'XLAYN', // Example business name
 //     });
 
 //     // Save the product to the database
@@ -577,7 +620,6 @@ export const getAdminRejectedProducts = async (req, res) => {
 // };
 
 
-
 export const adminCreateProduct = async (req, res) => {
   console.log('Request Body:', req.body);
   console.log('Uploaded Files:', req.files); // Log uploaded files
@@ -586,25 +628,13 @@ export const adminCreateProduct = async (req, res) => {
 
   try {
     // Ensure files are uploaded
-    // if (!req.files || req.files.length === 0) {
-    //   return res.status(400).json({ msg: 'No image files uploaded' });
-    // }
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ msg: 'No image files uploaded' });
+    }
 
     // Upload images to Cloudinary
-    // const imageUrls = [];
-    // for (const file of req.files) {
-    //   const result = await cloudinary.uploader.upload(file.path, {
-    //     folder: 'products', // Organize the images in a specific folder
-    //   });
-    //   imageUrls.push(result.secure_url); // Collect the secure URLs of the uploaded images
-    // }
-
     const imageUrls = await Promise.all(
-      req.files.map((file) =>
-        cloudinary.uploader.upload(file.path, {
-          folder: 'products',
-        }).then((result) => result.secure_url)
-      )
+      req.files.map((file) => uploadToCloudinary(file.buffer, 'products')) // Using memory buffer
     );
 
     // Ensure req.admin is defined correctly
@@ -634,6 +664,7 @@ export const adminCreateProduct = async (req, res) => {
     res.status(500).json({ error: 'Server error', details: err.message });
   }
 };
+
 
 
 export const adminGetProducts = async (req, res) => {
@@ -688,6 +719,8 @@ export const adminGetProductById = async (req, res) => {
 
 
 // // Admin: Update Product
+
+
 // export const adminUpdateProduct = async (req, res) => {
 //   console.log('Admin:', req.admin);  // Add this line for debugging
 
@@ -702,13 +735,11 @@ export const adminGetProductById = async (req, res) => {
 //     const item = await productModels.findById(id);
 
 //     if (!item) {
-//       console.error('Product not found with ID:', id);
 //       return res.status(404).json({ msg: 'Product not found' });
 //     }
 
 //     // Ensure req.admin is defined correctly
 //     if (!req.admin || !req.admin._id) {
-//       console.error('Admin not authenticated properly');
 //       return res.status(400).json({ msg: 'Admin not authenticated properly' });
 //     }
 
@@ -720,16 +751,39 @@ export const adminGetProductById = async (req, res) => {
 //     if (stock) item.stock = stock;
 //     if (description) item.description = description;
 
-//     // Handle image upload
+//     // Handle image upload to Cloudinary if files are provided
 //     if (req.files && req.files.length > 0) {
-//       const imageUrls = req.files.map(file => file.path); // Get image paths
-//       item.imageUrls = imageUrls; // Update the image URLs
+//       // Upload new images to Cloudinary
+//       // const imageUrls = [];
+//       // for (const file of req.files) {
+//       //   const result = await cloudinary.uploader.upload(file.path, {
+//       //     folder: 'products', // Folder in Cloudinary
+//       //   });
+//       //   imageUrls.push(result.secure_url); // Collect image URLs
+//       // }
+
+//       const imageUrls = await Promise.all(
+//         req.files.map((file) =>
+//           cloudinary.uploader.upload(file.path, {
+//             folder: 'products',
+//           }).then((result) => result.secure_url)
+//         )
+//       );
+
+//       // Optionally, delete old images from Cloudinary (if you want to remove them)
+//       if (item.imageUrls && item.imageUrls.length > 0) {
+//         for (const oldImage of item.imageUrls) {
+//           const publicId = oldImage.split('/').pop().split('.')[0]; // Extract public ID
+//           await cloudinary.uploader.destroy(publicId); // Delete image from Cloudinary
+//         }
+//       }
+
+//       // Update the product with the new image URLs
+//       item.imageUrls = imageUrls;
 //     }
 
 //     // Save the updated product in the database
 //     await item.save();
-//     console.log('Product successfully updated:', item);
-
 //     res.status(200).json({ msg: 'Product updated successfully', item });
 //   } catch (err) {
 //     console.error('Error updating product:', err.message);
@@ -740,25 +794,25 @@ export const adminGetProductById = async (req, res) => {
 
 
 export const adminUpdateProduct = async (req, res) => {
-  console.log('Admin:', req.admin);  // Add this line for debugging
+  console.log('Admin:', req.admin); // Debug: Check the admin details
 
   const { id } = req.params;
   const { name, type, weight, price, stock, description } = req.body;
 
-  console.log('Request Body:', req.body);
-  console.log('Uploaded Files:', req.files); // Log uploaded files
+  console.log('Request Body:', req.body); // Debug: Check request body
+  console.log('Uploaded Files:', req.files); // Debug: Check uploaded files
 
   try {
     // Find the product by ID
     const item = await productModels.findById(id);
 
     if (!item) {
-      return res.status(404).json({ msg: 'Product not found' });
+      return res.status(404).json({ success: false, message: 'Product not found' });
     }
 
-    // Ensure req.admin is defined correctly
+    // Ensure the admin is authenticated
     if (!req.admin || !req.admin._id) {
-      return res.status(400).json({ msg: 'Admin not authenticated properly' });
+      return res.status(403).json({ success: false, message: 'Admin not authenticated properly' });
     }
 
     // Update the product details only if they are provided
@@ -772,27 +826,19 @@ export const adminUpdateProduct = async (req, res) => {
     // Handle image upload to Cloudinary if files are provided
     if (req.files && req.files.length > 0) {
       // Upload new images to Cloudinary
-      // const imageUrls = [];
-      // for (const file of req.files) {
-      //   const result = await cloudinary.uploader.upload(file.path, {
-      //     folder: 'products', // Folder in Cloudinary
-      //   });
-      //   imageUrls.push(result.secure_url); // Collect image URLs
-      // }
-
       const imageUrls = await Promise.all(
-        req.files.map((file) =>
-          cloudinary.uploader.upload(file.path, {
-            folder: 'products',
-          }).then((result) => result.secure_url)
-        )
+        req.files.map((file) => uploadToCloudinary(file.buffer, 'products'))
       );
 
-      // Optionally, delete old images from Cloudinary (if you want to remove them)
+      // Optionally, delete old images from Cloudinary
       if (item.imageUrls && item.imageUrls.length > 0) {
         for (const oldImage of item.imageUrls) {
           const publicId = oldImage.split('/').pop().split('.')[0]; // Extract public ID
-          await cloudinary.uploader.destroy(publicId); // Delete image from Cloudinary
+          try {
+            await cloudinary.uploader.destroy(publicId); // Delete image from Cloudinary
+          } catch (err) {
+            console.warn(`Failed to delete image ${publicId}:`, err.message); // Log warning if deletion fails
+          }
         }
       }
 
@@ -802,14 +848,12 @@ export const adminUpdateProduct = async (req, res) => {
 
     // Save the updated product in the database
     await item.save();
-    res.status(200).json({ msg: 'Product updated successfully', item });
+    res.status(200).json({ success: true, message: 'Product updated successfully', product: item });
   } catch (err) {
     console.error('Error updating product:', err.message);
-    res.status(500).json({ error: 'Server error', details: err.message });
+    res.status(500).json({ success: false, message: 'Server error', error: err.message });
   }
 };
-
-
 
 
 // Admin: Delete Product

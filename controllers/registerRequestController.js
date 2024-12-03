@@ -6,6 +6,8 @@ import asyncHandler from 'express-async-handler';
 import nodemailer from 'nodemailer';
 import cloudinary from "../config/cloudinaryConfig.js";
 import dotenv from 'dotenv';
+import { uploadToCloudinary } from '../middleware/multer.js'; // Assuming `uploadToCloudinary` is in `utils/upload.js`
+
 
 dotenv.config(); // Load environment variables from .env file
 
@@ -40,69 +42,132 @@ const sendEmail = (email, subject, text) => {
 
 
 // Register Supplier
+// const registerSupplier = asyncHandler(async (req, res) => {
+//   const { username, businessName, email, password, address, bankAccountInfo } = req.body;
+
+//   // Upload business proof to Cloudinary
+//   let businessProofUrl = null;
+// if (req.files.businessProof) {
+//   try {
+//     const result = await cloudinary.uploader.upload(req.files.businessProof[0].path, {
+//       folder: 'suppliers/business_proofs',
+//     });
+//     businessProofUrl = result.secure_url; // Get the URL from Cloudinary
+//   } catch (error) {
+//     return res.status(500).json({ message: 'Error uploading business proof', error });
+//   }
+// }
+
+// let storeImageUrl = null;
+// if (req.files.storeImage) {
+//   try {
+//     const result = await cloudinary.uploader.upload(req.files.storeImage[0].path, {
+//       folder: 'suppliers/store_images',
+//     });
+//     storeImageUrl = result.secure_url; // Get the URL from Cloudinary
+//   } catch (error) {
+//     return res.status(500).json({ message: 'Error uploading store image', error });
+//   }
+// }
+
+
+//   // Check for missing required fields
+//   if (!username || !businessName || !businessProofUrl || !storeImageUrl || !email || !password || !address || !bankAccountInfo) {
+//     return res.status(400).json({ message: 'All fields are required' });
+//   }
+
+//   // Check if the supplier already exists
+//   const supplierExists = await Supplier.findOne({ email });
+//   if (supplierExists) {
+//     return res.status(400).json({ message: 'Supplier already exists' });
+//   }
+
+//   // Hash the password before saving
+//   const salt = await bcrypt.genSalt(10); // Generate a salt
+//   const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
+
+//   // Create a new supplier
+//   const supplier = await Supplier.create({
+//     username,
+//     businessName,
+//     businessProof: businessProofUrl, // Save the Cloudinary URL
+//     storeImage: storeImageUrl, // Save the Cloudinary URL
+//     email,
+//     password: hashedPassword,
+//     address,
+//     bankAccountInfo
+//   });
+
+//   if (supplier) {
+//     res.status(201).json({
+//       message: 'Supplier registered successfully',
+//       supplierId: supplier._id,
+//     });
+//   } else {
+//     res.status(400).json({ message: 'Invalid supplier data' });
+//   }
+// });
+
+
 const registerSupplier = asyncHandler(async (req, res) => {
   const { username, businessName, email, password, address, bankAccountInfo } = req.body;
 
-  // Upload business proof to Cloudinary
-  let businessProofUrl = null;
-if (req.files.businessProof) {
-  try {
-    const result = await cloudinary.uploader.upload(req.files.businessProof[0].path, {
-      folder: 'suppliers/business_proofs',
-    });
-    businessProofUrl = result.secure_url; // Get the URL from Cloudinary
-  } catch (error) {
-    return res.status(500).json({ message: 'Error uploading business proof', error });
-  }
-}
-
-let storeImageUrl = null;
-if (req.files.storeImage) {
-  try {
-    const result = await cloudinary.uploader.upload(req.files.storeImage[0].path, {
-      folder: 'suppliers/store_images',
-    });
-    storeImageUrl = result.secure_url; // Get the URL from Cloudinary
-  } catch (error) {
-    return res.status(500).json({ message: 'Error uploading store image', error });
-  }
-}
-
-
-  // Check for missing required fields
-  if (!username || !businessName || !businessProofUrl || !storeImageUrl || !email || !password || !address || !bankAccountInfo) {
-    return res.status(400).json({ message: 'All fields are required' });
+  // Validate required fields
+  if (!username || !businessName || !email || !password || !address || !bankAccountInfo) {
+    return res.status(400).json({ success: false, message: 'All fields are required' });
   }
 
   // Check if the supplier already exists
   const supplierExists = await Supplier.findOne({ email });
   if (supplierExists) {
-    return res.status(400).json({ message: 'Supplier already exists' });
+    return res.status(400).json({ success: false, message: 'Supplier already exists' });
   }
 
-  // Hash the password before saving
-  const salt = await bcrypt.genSalt(10); // Generate a salt
-  const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
+  let businessProofUrl = null;
+  let storeImageUrl = null;
+
+  try {
+    // Upload files to Cloudinary
+    if (req.files && req.files.businessProof) {
+      businessProofUrl = await uploadToCloudinary(req.files.businessProof[0].buffer, 'suppliers/business_proofs');
+    }
+
+    if (req.files && req.files.storeImage) {
+      storeImageUrl = await uploadToCloudinary(req.files.storeImage[0].buffer, 'suppliers/store_images');
+    }
+
+    // Validate uploaded files
+    if (!businessProofUrl || !storeImageUrl) {
+      return res.status(400).json({ success: false, message: 'Business proof and store image are required' });
+    }
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+
+  // Hash the password
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
 
   // Create a new supplier
   const supplier = await Supplier.create({
     username,
     businessName,
-    businessProof: businessProofUrl, // Save the Cloudinary URL
-    storeImage: storeImageUrl, // Save the Cloudinary URL
+    businessProof: businessProofUrl,
+    storeImage: storeImageUrl,
     email,
     password: hashedPassword,
     address,
-    bankAccountInfo
+    bankAccountInfo,
   });
 
   if (supplier) {
     res.status(201).json({
+      success: true,
       message: 'Supplier registered successfully',
       supplierId: supplier._id,
     });
   } else {
-    res.status(400).json({ message: 'Invalid supplier data' });
+    res.status(400).json({ success: false, message: 'Invalid supplier data' });
   }
 });
 
@@ -192,68 +257,129 @@ const getSupplierById = asyncHandler(async (req, res) => {
 
 
 // Register Wholesaler
-const registerWholesaler = async (req, res) => {
+// const registerWholesaler = async (req, res) => {
+//   try {
+//     // Extracting fields from request body
+//     const { username, businessName, address, bankAccountInfo, email, password } = req.body;
+
+//     // Upload business proof to Cloudinary
+//     let businessProofUrl = null;
+//     if (req.files['businessProof']) {
+//       try {
+//         const result = await cloudinary.uploader.upload(req.files['businessProof'][0].path, {
+//           folder: 'wholesalers/business_proofs', // Optional: Specify folder
+//         });
+//         businessProofUrl = result.secure_url; // Get the secure URL of the uploaded file
+//       } catch (error) {
+//         return res.status(500).json({ message: 'Error uploading business proof', error: error.message });
+//       }
+//     }
+
+//     // Upload store image to Cloudinary
+//     let storeImageUrl = null;
+//     if (req.files['storeImage']) {
+//       try {
+//         const result = await cloudinary.uploader.upload(req.files['storeImage'][0].path, {
+//           folder: 'wholesalers/store_images', // Optional: Specify folder
+//         });
+//         storeImageUrl = result.secure_url; // Get the secure URL of the uploaded file
+//       } catch (error) {
+//         return res.status(500).json({ message: 'Error uploading store image', error: error.message });
+//       }
+//     }
+
+//     // Check if all required fields and files are present
+//     if (!username || !businessName || !address || !bankAccountInfo || !email || !password || !businessProofUrl || !storeImageUrl) {
+//       return res.status(400).json({ message: 'All fields are required, including businessProof and storeImage.' });
+//     }
+
+//     // Hash the password before saving
+//     const salt = await bcrypt.genSalt(10); // Generate a salt
+//     const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
+
+//     // Create new wholesaler object
+//     const newWholesaler = new Wholesaler({
+//       username,
+//       businessName,
+//       address,
+//       businessProof: businessProofUrl,  // Use Cloudinary URL
+//       storeImage: storeImageUrl,  // Use Cloudinary URL
+//       bankAccountInfo,
+//       email,
+//       password: hashedPassword,
+//     });
+
+//     // Save wholesaler to the database
+//     await newWholesaler.save();
+
+//     // Success response
+//     res.status(201).json({ message: 'Wholesaler registration successful!' });
+//   } catch (error) {
+//     // Error handling
+//     res.status(400).json({ error: 'Error registering wholesaler.', details: error.message });
+//   }
+// };
+
+
+const registerWholesaler = asyncHandler(async (req, res) => {
+  const { username, businessName, address, bankAccountInfo, email, password } = req.body;
+
+  // Validate required fields
+  if (!username || !businessName || !address || !bankAccountInfo || !email || !password) {
+    return res.status(400).json({ success: false, message: 'All fields are required.' });
+  }
+
+  let businessProofUrl = null;
+  let storeImageUrl = null;
+
   try {
-    // Extracting fields from request body
-    const { username, businessName, address, bankAccountInfo, email, password } = req.body;
-
-    // Upload business proof to Cloudinary
-    let businessProofUrl = null;
-    if (req.files['businessProof']) {
-      try {
-        const result = await cloudinary.uploader.upload(req.files['businessProof'][0].path, {
-          folder: 'wholesalers/business_proofs', // Optional: Specify folder
-        });
-        businessProofUrl = result.secure_url; // Get the secure URL of the uploaded file
-      } catch (error) {
-        return res.status(500).json({ message: 'Error uploading business proof', error: error.message });
-      }
+    // Upload files to Cloudinary
+    if (req.files && req.files.businessProof) {
+      businessProofUrl = await uploadToCloudinary(req.files.businessProof[0].buffer, 'wholesalers/business_proofs');
     }
 
-    // Upload store image to Cloudinary
-    let storeImageUrl = null;
-    if (req.files['storeImage']) {
-      try {
-        const result = await cloudinary.uploader.upload(req.files['storeImage'][0].path, {
-          folder: 'wholesalers/store_images', // Optional: Specify folder
-        });
-        storeImageUrl = result.secure_url; // Get the secure URL of the uploaded file
-      } catch (error) {
-        return res.status(500).json({ message: 'Error uploading store image', error: error.message });
-      }
+    if (req.files && req.files.storeImage) {
+      storeImageUrl = await uploadToCloudinary(req.files.storeImage[0].buffer, 'wholesalers/store_images');
     }
 
-    // Check if all required fields and files are present
-    if (!username || !businessName || !address || !bankAccountInfo || !email || !password || !businessProofUrl || !storeImageUrl) {
-      return res.status(400).json({ message: 'All fields are required, including businessProof and storeImage.' });
+    // Validate uploaded files
+    if (!businessProofUrl || !storeImageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'Business proof and store image uploads are required.',
+      });
     }
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
 
-    // Hash the password before saving
-    const salt = await bcrypt.genSalt(10); // Generate a salt
-    const hashedPassword = await bcrypt.hash(password, salt); // Hash the password
+  try {
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Create new wholesaler object
-    const newWholesaler = new Wholesaler({
+    // Create a new wholesaler object
+    const newWholesaler = await Wholesaler.create({
       username,
       businessName,
       address,
-      businessProof: businessProofUrl,  // Use Cloudinary URL
-      storeImage: storeImageUrl,  // Use Cloudinary URL
+      businessProof: businessProofUrl,
+      storeImage: storeImageUrl,
       bankAccountInfo,
       email,
       password: hashedPassword,
     });
 
-    // Save wholesaler to the database
-    await newWholesaler.save();
-
     // Success response
-    res.status(201).json({ message: 'Wholesaler registration successful!' });
+    res.status(201).json({
+      success: true,
+      message: 'Wholesaler registration successful!',
+      wholesalerId: newWholesaler._id,
+    });
   } catch (error) {
-    // Error handling
-    res.status(400).json({ error: 'Error registering wholesaler.', details: error.message });
+    res.status(400).json({ success: false, message: 'Error registering wholesaler.', details: error.message });
   }
-};
+});
 
 
 // Wholesaler login

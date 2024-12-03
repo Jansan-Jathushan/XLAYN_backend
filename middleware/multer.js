@@ -80,42 +80,85 @@
 
 // export {upload};
 
-import multer from 'multer';
-// import path from 'path';
+// import multer from 'multer';
+// // import path from 'path';
 
-// Configure multer storage settings
-// const storage = multer.diskStorage({
-    // destination: (req, file, cb) => {
-    //     cb(null, 'uploads/'); // Temporary storage path before Cloudinary upload
-    // },
-    // filename: (req, file, cb) => {
-    //     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    //     cb(null, uniqueSuffix + path.extname(file.originalname)); // Unique filename
-    // }
+// // Configure multer storage settings
+// // const storage = multer.diskStorage({
+//     // destination: (req, file, cb) => {
+//     //     cb(null, 'uploads/'); // Temporary storage path before Cloudinary upload
+//     // },
+//     // filename: (req, file, cb) => {
+//     //     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+//     //     cb(null, uniqueSuffix + path.extname(file.originalname)); // Unique filename
+//     // }
+// // });
+
+// const storage=multer.diskStorage({
+//     filename:(req,file,cb)=>{
+//         cb(null,file.originalname)
+//     }
 // });
 
-const storage=multer.diskStorage({
-    filename:(req,file,cb)=>{
-        cb(null,file.originalname)
-    }
-});
 
+// // File filter to accept only image files
+// const fileFilter = (req, file, cb) => {
+//     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+//     if (allowedTypes.includes(file.mimetype)) {
+//         cb(null, true);
+//     } else {
+//         cb(new Error('Only JPEG, JPG, and PNG files are allowed'), false);
+//     }
+// };
+
+// // Set up multer with storage, file size limit, and filter
+// const upload = multer({
+//     storage: storage,
+//     limits: { fileSize: 10 * 1024 * 1024 }, // 2MB file size limit
+//     fileFilter: fileFilter
+// });
+
+// export { upload };
+
+
+import multer from 'multer';
+import streamifier from 'streamifier';
+import cloudinary from '../config/cloudinaryConfig.js'; // Your Cloudinary configuration file
+
+// Configure Multer to use memory storage
+const storage = multer.memoryStorage();
 
 // File filter to accept only image files
 const fileFilter = (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
-    if (allowedTypes.includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(new Error('Only JPEG, JPG, and PNG files are allowed'), false);
-    }
+  const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Only JPEG, JPG, and PNG files are allowed'), false);
+  }
 };
 
-// Set up multer with storage, file size limit, and filter
+// Set up Multer with memory storage
 const upload = multer({
-    storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 2MB file size limit
-    fileFilter: fileFilter
+  storage: storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB file size limit
+  fileFilter: fileFilter,
 });
 
-export { upload };
+// Helper function to upload file to Cloudinary
+const uploadToCloudinary = (buffer, folder) => {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: folder },
+      (error, result) => {
+        if (error) {
+          return reject(error);
+        }
+        resolve(result.secure_url); // Return the URL of the uploaded image
+      }
+    );
+    streamifier.createReadStream(buffer).pipe(uploadStream);
+  });
+};
+
+export { upload, uploadToCloudinary };
