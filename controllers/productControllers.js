@@ -199,9 +199,9 @@ export const createProduct = async (req, res) => {
 
   try {
     // Verify that files have been uploaded
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ msg: 'No files uploaded' });
-    }
+    // if (!req.files || req.files.length === 0) {
+    //   return res.status(400).json({ msg: 'No files uploaded' });
+    // }
 
     // Upload each file to Cloudinary and collect URLs
     // const imageUrls = [];
@@ -586,9 +586,9 @@ export const adminCreateProduct = async (req, res) => {
 
   try {
     // Ensure files are uploaded
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({ msg: 'No image files uploaded' });
-    }
+    // if (!req.files || req.files.length === 0) {
+    //   return res.status(400).json({ msg: 'No image files uploaded' });
+    // }
 
     // Upload images to Cloudinary
     // const imageUrls = [];
