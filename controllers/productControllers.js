@@ -204,13 +204,21 @@ export const createProduct = async (req, res) => {
     }
 
     // Upload each file to Cloudinary and collect URLs
-    const imageUrls = [];
-    for (const file of req.files) {
-      const result = await cloudinary.uploader.upload(file.path, {
-        folder: 'products', // Organize files in a 'products' folder on Cloudinary
-      });
-      imageUrls.push(result.secure_url); // Save each URL to the imageUrls array
-    }
+    // const imageUrls = [];
+    // for (const file of req.files) {
+    //   const result = await cloudinary.uploader.upload(file.path, {
+    //     folder: 'products', // Organize files in a 'products' folder on Cloudinary
+    //   });
+    //   imageUrls.push(result.secure_url); // Save each URL to the imageUrls array
+    // }
+
+    const imageUrls = await Promise.all(
+      req.files.map((file) =>
+        cloudinary.uploader.upload(file.path, {
+          folder: 'products',
+        }).then((result) => result.secure_url)
+      )
+    );
 
     // Retrieve authenticated supplier data
     const supplierId = req.user._id;
@@ -311,13 +319,21 @@ export const updateProduct = async (req, res) => {
     // Handle image upload to Cloudinary if files are provided
     if (req.files && req.files.length > 0) {
       // Upload new images to Cloudinary
-      const imageUrls = [];
-      for (const file of req.files) {
-        const result = await cloudinary.uploader.upload(file.path, {
-          folder: 'products', // Organize files in a specific folder on Cloudinary
-        });
-        imageUrls.push(result.secure_url); // Collect image URLs
-      }
+      // const imageUrls = [];
+      // for (const file of req.files) {
+      //   const result = await cloudinary.uploader.upload(file.path, {
+      //     folder: 'products', // Organize files in a specific folder on Cloudinary
+      //   });
+      //   imageUrls.push(result.secure_url); // Collect image URLs
+      // }
+
+      const imageUrls = await Promise.all(
+        req.files.map((file) =>
+          cloudinary.uploader.upload(file.path, {
+            folder: 'products',
+          }).then((result) => result.secure_url)
+        )
+      );
 
       // Optionally, delete old images from Cloudinary (if you want to remove them)
       if (item.imageUrls && item.imageUrls.length > 0) {
@@ -575,13 +591,21 @@ export const adminCreateProduct = async (req, res) => {
     }
 
     // Upload images to Cloudinary
-    const imageUrls = [];
-    for (const file of req.files) {
-      const result = await cloudinary.uploader.upload(file.path, {
-        folder: 'products', // Organize the images in a specific folder
-      });
-      imageUrls.push(result.secure_url); // Collect the secure URLs of the uploaded images
-    }
+    // const imageUrls = [];
+    // for (const file of req.files) {
+    //   const result = await cloudinary.uploader.upload(file.path, {
+    //     folder: 'products', // Organize the images in a specific folder
+    //   });
+    //   imageUrls.push(result.secure_url); // Collect the secure URLs of the uploaded images
+    // }
+
+    const imageUrls = await Promise.all(
+      req.files.map((file) =>
+        cloudinary.uploader.upload(file.path, {
+          folder: 'products',
+        }).then((result) => result.secure_url)
+      )
+    );
 
     // Ensure req.admin is defined correctly
     if (!req.admin || !req.admin._id) {
@@ -748,13 +772,21 @@ export const adminUpdateProduct = async (req, res) => {
     // Handle image upload to Cloudinary if files are provided
     if (req.files && req.files.length > 0) {
       // Upload new images to Cloudinary
-      const imageUrls = [];
-      for (const file of req.files) {
-        const result = await cloudinary.uploader.upload(file.path, {
-          folder: 'products', // Folder in Cloudinary
-        });
-        imageUrls.push(result.secure_url); // Collect image URLs
-      }
+      // const imageUrls = [];
+      // for (const file of req.files) {
+      //   const result = await cloudinary.uploader.upload(file.path, {
+      //     folder: 'products', // Folder in Cloudinary
+      //   });
+      //   imageUrls.push(result.secure_url); // Collect image URLs
+      // }
+
+      const imageUrls = await Promise.all(
+        req.files.map((file) =>
+          cloudinary.uploader.upload(file.path, {
+            folder: 'products',
+          }).then((result) => result.secure_url)
+        )
+      );
 
       // Optionally, delete old images from Cloudinary (if you want to remove them)
       if (item.imageUrls && item.imageUrls.length > 0) {
