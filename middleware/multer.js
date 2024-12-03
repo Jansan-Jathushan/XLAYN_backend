@@ -84,15 +84,22 @@ import multer from 'multer';
 import path from 'path';
 
 // Configure multer storage settings
-const storage = multer.diskStorage({
+// const storage = multer.diskStorage({
     // destination: (req, file, cb) => {
     //     cb(null, 'uploads/'); // Temporary storage path before Cloudinary upload
     // },
-    filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, uniqueSuffix + path.extname(file.originalname)); // Unique filename
+    // filename: (req, file, cb) => {
+    //     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    //     cb(null, uniqueSuffix + path.extname(file.originalname)); // Unique filename
+    // }
+// });
+
+const storage=multer.diskStorage({
+    filename:(req,file,cb)=>{
+        cb(null,file.originalname)
     }
 });
+
 
 // File filter to accept only image files
 const fileFilter = (req, file, cb) => {
