@@ -146,18 +146,32 @@ const upload = multer({
 });
 
 // Helper function to upload file to Cloudinary
+// const uploadToCloudinary = (buffer, folder) => {
+//   return new Promise((resolve, reject) => {
+//     const uploadStream = cloudinary.uploader.upload_stream(
+//       { folder: folder },
+//       (error, result) => {
+//         if (error) {
+//           return reject(error);
+//         }
+//         resolve(result.secure_url); // Return the URL of the uploaded image
+//       }
+//     );
+//     streamifier.createReadStream(buffer).pipe(uploadStream);
+//   });
+// };
+
+
 const uploadToCloudinary = (buffer, folder) => {
   return new Promise((resolve, reject) => {
-    const uploadStream = cloudinary.uploader.upload_stream(
-      { folder: folder },
+    const stream = cloudinary.uploader.upload_stream(
+      { folder }, // Specify folder in Cloudinary
       (error, result) => {
-        if (error) {
-          return reject(error);
-        }
-        resolve(result.secure_url); // Return the URL of the uploaded image
+        if (error) return reject(error);
+        resolve(result.secure_url); // Return secure URL
       }
     );
-    streamifier.createReadStream(buffer).pipe(uploadStream);
+    stream.end(buffer); // End the stream and upload the buffer
   });
 };
 
