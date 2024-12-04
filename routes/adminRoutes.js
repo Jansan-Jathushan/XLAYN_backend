@@ -5,7 +5,6 @@ import multer from 'multer';
 import User from '../Models/userModels.js';
 import Product from '../Models/productModels.js';
 const router = express.Router();
-const upload = multer({ dest: 'uploads/' });
 
 // ==================== User Management ====================
 
