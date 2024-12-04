@@ -127,7 +127,7 @@ app.post('/api/pay/webhook', express.raw({type: 'application/json'}), (request, 
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({
-  origin: ['http://localhost:3000', 'https://example.com'], // specify allowed origins
+  origin: ['http://localhost:3000', 'https://xlayn.vercel.app'], // specify allowed origins
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // specify allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'] // specify allowed headers
 }));
