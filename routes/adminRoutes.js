@@ -41,19 +41,19 @@ router.delete('/users/:id', async (req, res) => {
 // ==================== Product Management ====================
 
 // Create a new product
-router.post('/products', upload.single('image'), async (req, res) => {
-    try {
-        const newProduct = new Product({
-            name: req.body.name,
-            type: req.body.type,
-            image: req.file.path,
-        });
-        await newProduct.save();
-        res.status(201).json(newProduct);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-});
+// router.post('/products', upload.single('image'), async (req, res) => {
+//     try {
+//         const newProduct = new Product({
+//             name: req.body.name,
+//             type: req.body.type,
+//             image: req.file.path,
+//         });
+//         await newProduct.save();
+//         res.status(201).json(newProduct);
+//     } catch (error) {
+//         res.status(400).json({ message: error.message });
+//     }
+// });
 
 // Get all products
 router.get('/products', async (req, res) => {
@@ -66,18 +66,18 @@ router.get('/products', async (req, res) => {
 });
 
 // Update a product
-router.put('/products/:id', upload.single('image'), async (req, res) => {
-    try {
-        const updatedProduct = await Product.findByIdAndUpdate(req.params.id, {
-            name: req.body.name,
-            type: req.body.type,
-            image: req.file ? req.file.path : undefined,
-        }, { new: true });
-        res.json(updatedProduct);
-    } catch (error) {
-        res.status(400).json({ message: error.message });
-    }
-});
+// router.put('/products/:id', upload.single('image'), async (req, res) => {
+//     try {
+//         const updatedProduct = await Product.findByIdAndUpdate(req.params.id, {
+//             name: req.body.name,
+//             type: req.body.type,
+//             image: req.file ? req.file.path : undefined,
+//         }, { new: true });
+//         res.json(updatedProduct);
+//     } catch (error) {
+//         res.status(400).json({ message: error.message });
+//     }
+// });
 
 // Delete a product
 router.delete('/products/:id', async (req, res) => {

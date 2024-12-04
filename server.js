@@ -132,7 +132,6 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'] // specify allowed headers
 }));
 
-// app.use('/api/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
 
